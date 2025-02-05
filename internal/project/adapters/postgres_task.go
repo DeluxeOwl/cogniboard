@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -20,7 +21,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     title VARCHAR(50) NOT NULL,
     description TEXT,
     due_date TIMESTAMP WITH TIME ZONE,
-    assignee_id UUID,
+    assignee_id numeric,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     completed_at TIMESTAMP WITH TIME ZONE,
     status VARCHAR(20) NOT NULL
@@ -32,7 +33,7 @@ type taskDTO struct {
 	Title       string     `db:"title"`
 	Description *string    `db:"description"`
 	DueDate     *time.Time `db:"due_date"`
-	AssigneeID  *string    `db:"assignee_id"`
+	AssigneeID  *uint64    `db:"assignee_id"`
 	CreatedAt   time.Time  `db:"created_at"`
 	CompletedAt *time.Time `db:"completed_at"`
 	Status      string     `db:"status"`
@@ -58,10 +59,10 @@ func (dto *taskDTO) toDomain() (*project.Task, error) {
 }
 
 func toDTO(t *project.Task) *taskDTO {
-	var assigneeID *string
+	var assigneeID *uint64
 	if t.AssigneeID() != nil {
-		str := string(*t.AssigneeID())
-		assigneeID = &str
+		nr := uint64(*t.AssigneeID())
+		assigneeID = &nr
 	}
 
 	return &taskDTO{
@@ -90,7 +91,7 @@ func NewPostgresTaskRepository(db *sqlx.DB) (*PostgresTaskRepository, error) {
 	}
 
 	if err := repo.createSchema(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to create schema: %w", err)
+		return nil, fmt.Errorf("create schema: %w", err)
 	}
 
 	return repo, nil
@@ -122,10 +123,10 @@ func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID)
 	)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("task not found: %w", err)
 		}
-		return nil, fmt.Errorf("failed to get task: %w", err)
+		return nil, fmt.Errorf("get task: %w", err)
 	}
 
 	return dto.toDomain()
@@ -134,7 +135,7 @@ func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID)
 func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.TaskID, updateFn func(t *project.Task) (*project.Task, error)) error {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return fmt.Errorf("begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -146,15 +147,15 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 	)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("task not found: %w", err)
 		}
-		return fmt.Errorf("failed to get task: %w", err)
+		return fmt.Errorf("get task: %w", err)
 	}
 
 	existingTask, err := dto.toDomain()
 	if err != nil {
-		return fmt.Errorf("failed to convert to domain: %w", err)
+		return fmt.Errorf("convert to domain: %w", err)
 	}
 
 	updatedTask, err := updateFn(existingTask)
@@ -173,11 +174,11 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 	)
 
 	if err != nil {
-		return fmt.Errorf("failed to update task: %w", err)
+		return fmt.Errorf("update task: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return fmt.Errorf("commit transaction: %w", err)
 	}
 
 	return nil
@@ -187,7 +188,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 func ConnectDB(dsn string) (*sqlx.DB, error) {
 	config, err := pgx.ParseConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse DSN: %w", err)
+		return nil, fmt.Errorf("parse DSN: %w", err)
 	}
 
 	// Set timeouts
@@ -198,7 +199,7 @@ func ConnectDB(dsn string) (*sqlx.DB, error) {
 	connStr := stdlib.RegisterConnConfig(config)
 	db, err := sqlx.Connect("pgx", connStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		return nil, fmt.Errorf("connect to database: %w", err)
 	}
 
 	// Configure connection pool

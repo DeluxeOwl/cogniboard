@@ -1,7 +1,7 @@
 package project
 
 type (
-	TeamMemberID string
+	TeamMemberID uint64
 	TeamMember   struct {
 		id   TeamMemberID
 		name string

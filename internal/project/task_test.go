@@ -15,7 +15,7 @@ func TestNewTask(t *testing.T) {
 		title := "Test Task"
 		description := "Test Description"
 		now := time.Now().Add(24 * time.Hour)
-		assigneeID := TeamMemberID("user-1")
+		assigneeID := TeamMemberID(1)
 
 		// Act
 		task, err := NewTask(id, title, &description, &now, &assigneeID)
@@ -108,7 +108,7 @@ func TestTaskAssignment(t *testing.T) {
 
 	t.Run("assigns task to user", func(t *testing.T) {
 		// Arrange
-		userID := TeamMemberID("user-1")
+		userID := TeamMemberID(1)
 
 		// Act
 		err := task.AssignTo(&userID)
@@ -139,7 +139,7 @@ func TestTaskGetters(t *testing.T) {
 	// Arrange
 	description := "Test Description"
 	dueDate := time.Now().Add(24 * time.Hour)
-	assigneeID := TeamMemberID("user-1")
+	assigneeID := TeamMemberID(1)
 	task, err := NewTask(TaskID("test-id"), "Test Task", &description, &dueDate, &assigneeID)
 	require.NoError(t, err)
 
@@ -157,7 +157,7 @@ func TestTaskGetters(t *testing.T) {
 
 		assigneeCopy := task.AssigneeID()
 		require.NotNil(t, assigneeCopy)
-		*assigneeCopy = "modified"
+		*assigneeCopy = 2
 		assert.Equal(t, assigneeID, *task.AssigneeID())
 	})
 
@@ -182,7 +182,7 @@ func TestUnmarshalFromDB(t *testing.T) {
 		description := "Test Description"
 		now := time.Now()
 		dueDate := now.Add(24 * time.Hour)
-		assigneeID := TeamMemberID("user-1")
+		assigneeID := TeamMemberID(1)
 		completedAt := now.Add(12 * time.Hour)
 
 		// Act

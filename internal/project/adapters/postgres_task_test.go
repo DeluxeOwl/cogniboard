@@ -96,3 +96,110 @@ func Test_RepoCreate(t *testing.T) {
 
 	require.Equal(t, taskFromDB.ID(), task.ID())
 }
+
+func Test_RepoGetByID(t *testing.T) {
+	ctx := context.Background()
+	repo, cleanup := setupPostgresRepo(ctx, t)
+	defer cleanup()
+
+	t.Run("returns error when task does not exist", func(t *testing.T) {
+		taskID, err := project.NewTaskID()
+		require.NoError(t, err)
+
+		task, err := repo.GetByID(ctx, taskID)
+		require.Error(t, err)
+		require.Nil(t, task)
+		require.Contains(t, err.Error(), "task not found")
+	})
+
+	t.Run("successfully retrieves existing task with all fields", func(t *testing.T) {
+		description := "test description"
+		dueDate := time.Now().Add(24 * time.Hour)
+		assigneeID := project.TeamMemberID(1)
+		task := createTaskWithID(t, "test task", &description, &dueDate, &assigneeID)
+
+		err := repo.Create(ctx, task)
+		require.NoError(t, err)
+
+		taskFromDB, err := repo.GetByID(ctx, task.ID())
+		require.NoError(t, err)
+		require.NotNil(t, taskFromDB)
+
+		require.Equal(t, task.ID(), taskFromDB.ID())
+		require.Equal(t, task.Title(), taskFromDB.Title())
+		require.Equal(t, task.Description(), taskFromDB.Description())
+		require.Equal(t, task.DueDate().UTC(), taskFromDB.DueDate().UTC())
+		require.Equal(t, task.AssigneeID(), taskFromDB.AssigneeID())
+		require.Equal(t, task.Status(), taskFromDB.Status())
+		require.Equal(t, task.CreatedAt().UTC(), taskFromDB.CreatedAt().UTC())
+		require.Equal(t, task.CompletedAt(), taskFromDB.CompletedAt())
+	})
+}
+
+func Test_RepoUpdateTask(t *testing.T) {
+	ctx := context.Background()
+	repo, cleanup := setupPostgresRepo(ctx, t)
+	defer cleanup()
+
+	t.Run("returns error when task does not exist", func(t *testing.T) {
+		taskID, err := project.NewTaskID()
+		require.NoError(t, err)
+
+		err = repo.UpdateTask(ctx, taskID, func(t *project.Task) (*project.Task, error) {
+			return t, nil
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "task not found")
+	})
+
+	t.Run("successfully updates task status", func(t *testing.T) {
+		task := createTaskWithID(t, "test task", nil, nil, nil)
+		err := repo.Create(ctx, task)
+		require.NoError(t, err)
+
+		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+			t.Complete()
+			return t, nil
+		})
+		require.NoError(t, err)
+
+		updatedTask, err := repo.GetByID(ctx, task.ID())
+		require.NoError(t, err)
+		require.Equal(t, project.TaskStatusCompleted, updatedTask.Status())
+		require.NotNil(t, updatedTask.CompletedAt())
+	})
+
+	t.Run("successfully updates task assignment", func(t *testing.T) {
+		task := createTaskWithID(t, "test task", nil, nil, nil)
+		err := repo.Create(ctx, task)
+		require.NoError(t, err)
+
+		assigneeID := project.TeamMemberID(1)
+		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+			return t, t.AssignTo(&assigneeID)
+		})
+		require.NoError(t, err)
+
+		updatedTask, err := repo.GetByID(ctx, task.ID())
+		require.NoError(t, err)
+		require.Equal(t, &assigneeID, updatedTask.AssigneeID())
+	})
+
+	t.Run("rolls back transaction on update function error", func(t *testing.T) {
+		task := createTaskWithID(t, "test task", nil, nil, nil)
+		err := repo.Create(ctx, task)
+		require.NoError(t, err)
+
+		expectedError := fmt.Errorf("update error")
+		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+			t.Complete()
+			return t, expectedError
+		})
+		require.ErrorIs(t, err, expectedError)
+
+		unchangedTask, err := repo.GetByID(ctx, task.ID())
+		require.NoError(t, err)
+		require.Equal(t, project.TaskStatusPending, unchangedTask.Status())
+		require.Nil(t, unchangedTask.CompletedAt())
+	})
+}
