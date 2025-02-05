@@ -15,6 +15,7 @@ type Application struct {
 }
 
 type Commands struct {
+	CreateTask       commands.CreateTaskHandler
 	ChangeTaskStatus commands.ChangeTaskStatusHandler
 	AssignTask       commands.AssignTaskHandler
 	UnassignTask     commands.UnassignTaskHandler
@@ -35,6 +36,7 @@ func New(repo project.TaskRepository, logger *slog.Logger) (*Application, error)
 
 	return &Application{
 		Commands: Commands{
+			CreateTask:       commands.NewCreateTaskHandler(repo, logger),
 			ChangeTaskStatus: commands.NewChangeStatusHandler(repo, logger),
 			AssignTask:       commands.NewAssignTaskHandler(repo, logger),
 			UnassignTask:     commands.NewUnassignTaskHandler(repo, logger),
