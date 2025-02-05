@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -8,6 +9,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 )
+
+type TaskRepository interface {
+	Create(ctx context.Context, task *Task) error
+	GetByID(ctx context.Context, id taskID) (*Task, error)
+	UpdateTask(ctx context.Context, id taskID, updateFn func(t *Task) (*Task, error)) error
+}
 
 type taskID string
 
