@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
 	"github.com/DeluxeOwl/cogniboard/internal/decorator"
@@ -20,17 +19,11 @@ type changeTaskStatusHandler struct {
 	repo project.TaskRepository
 }
 
-func NewChangeStatusHandler(repo project.TaskRepository, logger *slog.Logger) (ChangeTaskStatusHandler, error) {
-	if repo == nil {
-		return nil, errors.New("repository cannot be nil")
-	}
-	if logger == nil {
-		return nil, errors.New("logger cannot be nil")
-	}
+func NewChangeStatusHandler(repo project.TaskRepository, logger *slog.Logger) ChangeTaskStatusHandler {
 	return decorator.ApplyCommandDecorators(
 		&changeTaskStatusHandler{repo: repo},
 		logger,
-	), nil
+	)
 }
 
 func (h *changeTaskStatusHandler) Handle(ctx context.Context, cmd ChangeTaskStatus) error {

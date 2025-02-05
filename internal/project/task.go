@@ -14,6 +14,7 @@ type TaskRepository interface {
 	Create(ctx context.Context, task *Task) error
 	GetByID(ctx context.Context, id TaskID) (*Task, error)
 	UpdateTask(ctx context.Context, id TaskID, updateFn func(t *Task) (*Task, error)) error
+	AllTasks(ctx context.Context) ([]Task, error)
 }
 
 type TaskID string

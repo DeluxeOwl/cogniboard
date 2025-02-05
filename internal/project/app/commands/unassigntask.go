@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
 	"github.com/DeluxeOwl/cogniboard/internal/decorator"
@@ -19,17 +18,11 @@ type unassignTaskHandler struct {
 	repo project.TaskRepository
 }
 
-func NewUnassignTaskHandler(repo project.TaskRepository, logger *slog.Logger) (UnassignTaskHandler, error) {
-	if repo == nil {
-		return nil, errors.New("repository cannot be nil")
-	}
-	if logger == nil {
-		return nil, errors.New("logger cannot be nil")
-	}
+func NewUnassignTaskHandler(repo project.TaskRepository, logger *slog.Logger) UnassignTaskHandler {
 	return decorator.ApplyCommandDecorators(
 		&unassignTaskHandler{repo: repo},
 		logger,
-	), nil
+	)
 }
 
 func (h *unassignTaskHandler) Handle(ctx context.Context, cmd UnassignTask) error {

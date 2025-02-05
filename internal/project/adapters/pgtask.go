@@ -65,6 +65,8 @@ type PostgresTaskRepository struct {
 	db *sqlx.DB
 }
 
+var _ project.TaskRepository = &PostgresTaskRepository{}
+
 func NewPostgresTaskRepository(db *sqlx.DB) (*PostgresTaskRepository, error) {
 	if db == nil {
 		return nil, errors.New("db connection cannot be nil")
@@ -157,4 +159,25 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 	}
 
 	return nil
+}
+
+func (r *PostgresTaskRepository) AllTasks(ctx context.Context) ([]project.Task, error) {
+	var dtos []taskDTO
+	err := r.db.SelectContext(ctx, &dtos,
+		`SELECT id, title, description, due_date, assignee, created_at, completed_at, status
+		FROM tasks`)
+	if err != nil {
+		return nil, fmt.Errorf("select tasks: %w", err)
+	}
+
+	tasks := make([]project.Task, 0, len(dtos))
+	for _, dto := range dtos {
+		task, err := dto.toDomain()
+		if err != nil {
+			return nil, fmt.Errorf("convert task to domain: %w", err)
+		}
+		tasks = append(tasks, *task)
+	}
+
+	return tasks, nil
 }
