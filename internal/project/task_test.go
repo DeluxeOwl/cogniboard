@@ -66,7 +66,8 @@ func TestTaskStatusTransitions(t *testing.T) {
 
 	t.Run("completes task", func(t *testing.T) {
 		// Act
-		task.Complete()
+		err := task.ChangeStatus(TaskStatusCompleted)
+		require.NoError(t, err)
 
 		// Assert
 		assert.Equal(t, TaskStatusCompleted, task.Status())
@@ -75,7 +76,8 @@ func TestTaskStatusTransitions(t *testing.T) {
 
 	t.Run("marks task as pending", func(t *testing.T) {
 		// Act
-		task.MarkPending()
+		err := task.ChangeStatus(TaskStatusPending)
+		require.NoError(t, err)
 
 		// Assert
 		assert.Equal(t, TaskStatusPending, task.Status())
@@ -84,7 +86,8 @@ func TestTaskStatusTransitions(t *testing.T) {
 
 	t.Run("marks task as in progress", func(t *testing.T) {
 		// Act
-		task.MarkInProgress()
+		err := task.ChangeStatus(TaskStatusInProgress)
+		require.NoError(t, err)
 
 		// Assert
 		assert.Equal(t, TaskStatusInProgress, task.Status())
@@ -93,7 +96,8 @@ func TestTaskStatusTransitions(t *testing.T) {
 
 	t.Run("marks task as in review", func(t *testing.T) {
 		// Act
-		task.MarkInReview()
+		err := task.ChangeStatus(TaskStatusInReview)
+		require.NoError(t, err)
 
 		// Assert
 		assert.Equal(t, TaskStatusInReview, task.Status())

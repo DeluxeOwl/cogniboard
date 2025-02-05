@@ -51,7 +51,15 @@ const MaxTitleLength = 50
 var (
 	ErrTitleTooLong  = fmt.Errorf("title cannot be longer than %d characters", MaxTitleLength)
 	ErrDueDateInPast = errors.New("due date cannot be in the past")
+	ErrInvalidStatus = errors.New("invalid task status")
 )
+
+var validTaskStatuses = map[TaskStatus]bool{
+	TaskStatusPending:    true,
+	TaskStatusInProgress: true,
+	TaskStatusInReview:   true,
+	TaskStatusCompleted:  true,
+}
 
 func NewTask(id TaskID, title string, description *string, dueDate *time.Time, assigneeName *string) (*Task, error) {
 	if len(title) > 50 {
@@ -74,24 +82,18 @@ func NewTask(id TaskID, title string, description *string, dueDate *time.Time, a
 	return task, nil
 }
 
-func (t *Task) Complete() {
-	t.completedAt = lo.ToPtr(time.Now())
-	t.status = TaskStatusCompleted
-}
+func (t *Task) ChangeStatus(status TaskStatus) error {
+	if !validTaskStatuses[status] {
+		return fmt.Errorf("%w: %s", ErrInvalidStatus, status)
+	}
 
-func (t *Task) MarkPending() {
-	t.completedAt = nil
-	t.status = TaskStatusPending
-}
-
-func (t *Task) MarkInProgress() {
-	t.completedAt = nil
-	t.status = TaskStatusInProgress
-}
-
-func (t *Task) MarkInReview() {
-	t.completedAt = nil
-	t.status = TaskStatusInReview
+	if status == TaskStatusCompleted {
+		t.completedAt = lo.ToPtr(time.Now())
+	} else {
+		t.completedAt = nil
+	}
+	t.status = status
+	return nil
 }
 
 func (t *Task) AssignTo(memberName *string) error {

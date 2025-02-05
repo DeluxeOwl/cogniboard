@@ -159,7 +159,10 @@ func Test_RepoUpdateTask(t *testing.T) {
 		require.NoError(t, err)
 
 		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
-			t.Complete()
+			err := t.ChangeStatus(project.TaskStatusCompleted)
+			if err != nil {
+				return nil, err
+			}
 			return t, nil
 		})
 		require.NoError(t, err)
@@ -193,7 +196,10 @@ func Test_RepoUpdateTask(t *testing.T) {
 
 		expectedError := fmt.Errorf("update error")
 		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
-			t.Complete()
+			err := t.ChangeStatus(project.TaskStatusCompleted)
+			if err != nil {
+				return nil, err
+			}
 			return t, expectedError
 		})
 		require.ErrorIs(t, err, expectedError)
