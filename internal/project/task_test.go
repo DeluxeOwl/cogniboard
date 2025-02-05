@@ -15,10 +15,10 @@ func TestNewTask(t *testing.T) {
 		title := "Test Task"
 		description := "Test Description"
 		now := time.Now().Add(24 * time.Hour)
-		assigneeID := TeamMemberID(1)
+		assigneeName := "john"
 
 		// Act
-		task, err := NewTask(id, title, &description, &now, &assigneeID)
+		task, err := NewTask(id, title, &description, &now, &assigneeName)
 
 		// Assert
 		require.NoError(t, err)
@@ -26,7 +26,7 @@ func TestNewTask(t *testing.T) {
 		assert.Equal(t, title, task.Title())
 		assert.Equal(t, &description, task.Description())
 		assert.Equal(t, &now, task.DueDate())
-		assert.Equal(t, &assigneeID, task.AssigneeID())
+		assert.Equal(t, &assigneeName, task.Asignee())
 		assert.Equal(t, TaskStatusPending, task.Status())
 		assert.Nil(t, task.CompletedAt())
 	})
@@ -108,14 +108,14 @@ func TestTaskAssignment(t *testing.T) {
 
 	t.Run("assigns task to user", func(t *testing.T) {
 		// Arrange
-		userID := TeamMemberID(1)
+		memberName := "john"
 
 		// Act
-		err := task.AssignTo(&userID)
+		err := task.AssignTo(&memberName)
 
 		// Assert
 		assert.NoError(t, err)
-		assert.Equal(t, &userID, task.AssigneeID())
+		assert.Equal(t, &memberName, task.Asignee())
 	})
 
 	t.Run("fails to assign with nil user ID", func(t *testing.T) {
@@ -131,7 +131,7 @@ func TestTaskAssignment(t *testing.T) {
 		task.Unassign()
 
 		// Assert
-		assert.Nil(t, task.AssigneeID())
+		assert.Nil(t, task.Asignee())
 	})
 }
 
@@ -139,8 +139,8 @@ func TestTaskGetters(t *testing.T) {
 	// Arrange
 	description := "Test Description"
 	dueDate := time.Now().Add(24 * time.Hour)
-	assigneeID := TeamMemberID(1)
-	task, err := NewTask(TaskID("test-id"), "Test Task", &description, &dueDate, &assigneeID)
+	assigneeName := "john"
+	task, err := NewTask(TaskID("test-id"), "Test Task", &description, &dueDate, &assigneeName)
 	require.NoError(t, err)
 
 	t.Run("returns copies of pointer values", func(t *testing.T) {
@@ -155,10 +155,10 @@ func TestTaskGetters(t *testing.T) {
 		*dueDateCopy = dueDateCopy.Add(time.Hour)
 		assert.Equal(t, dueDate, *task.DueDate())
 
-		assigneeCopy := task.AssigneeID()
+		assigneeCopy := task.Asignee()
 		require.NotNil(t, assigneeCopy)
-		*assigneeCopy = 2
-		assert.Equal(t, assigneeID, *task.AssigneeID())
+		*assigneeCopy = "mary"
+		assert.Equal(t, assigneeName, *task.Asignee())
 	})
 
 	t.Run("handles nil values", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestTaskGetters(t *testing.T) {
 		// Act & Assert
 		assert.Nil(t, task.Description())
 		assert.Nil(t, task.DueDate())
-		assert.Nil(t, task.AssigneeID())
+		assert.Nil(t, task.Asignee())
 		assert.Nil(t, task.CompletedAt())
 	})
 }
@@ -182,7 +182,7 @@ func TestUnmarshalFromDB(t *testing.T) {
 		description := "Test Description"
 		now := time.Now()
 		dueDate := now.Add(24 * time.Hour)
-		assigneeID := TeamMemberID(1)
+		assigneeName := "john"
 		completedAt := now.Add(12 * time.Hour)
 
 		// Act
@@ -191,7 +191,7 @@ func TestUnmarshalFromDB(t *testing.T) {
 			title,
 			&description,
 			&dueDate,
-			&assigneeID,
+			&assigneeName,
 			now,
 			&completedAt,
 			TaskStatusCompleted,
@@ -203,7 +203,7 @@ func TestUnmarshalFromDB(t *testing.T) {
 		assert.Equal(t, title, task.Title())
 		assert.Equal(t, &description, task.Description())
 		assert.Equal(t, &dueDate, task.DueDate())
-		assert.Equal(t, &assigneeID, task.AssigneeID())
+		assert.Equal(t, &assigneeName, task.Asignee())
 		assert.Equal(t, now, task.CreatedAt())
 		assert.Equal(t, &completedAt, task.CompletedAt())
 		assert.Equal(t, TaskStatusCompleted, task.Status())

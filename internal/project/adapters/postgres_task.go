@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     title VARCHAR(50) NOT NULL,
     description TEXT,
     due_date TIMESTAMP WITH TIME ZONE,
-    assignee_id numeric,
+    assignee TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     completed_at TIMESTAMP WITH TIME ZONE,
     status VARCHAR(20) NOT NULL
@@ -29,21 +29,21 @@ CREATE TABLE IF NOT EXISTS tasks (
 `
 
 type taskDTO struct {
-	ID          string     `db:"id"`
-	Title       string     `db:"title"`
-	Description *string    `db:"description"`
-	DueDate     *time.Time `db:"due_date"`
-	AssigneeID  *uint64    `db:"assignee_id"`
-	CreatedAt   time.Time  `db:"created_at"`
-	CompletedAt *time.Time `db:"completed_at"`
-	Status      string     `db:"status"`
+	ID           string     `db:"id"`
+	Title        string     `db:"title"`
+	Description  *string    `db:"description"`
+	DueDate      *time.Time `db:"due_date"`
+	AssigneeName *string    `db:"assignee"`
+	CreatedAt    time.Time  `db:"created_at"`
+	CompletedAt  *time.Time `db:"completed_at"`
+	Status       string     `db:"status"`
 }
 
 func (dto *taskDTO) toDomain() (*project.Task, error) {
-	var assigneeID *project.TeamMemberID
-	if dto.AssigneeID != nil {
-		id := project.TeamMemberID(*dto.AssigneeID)
-		assigneeID = &id
+	var assigneeName *string
+	if dto.AssigneeName != nil {
+		id := string(*dto.AssigneeName)
+		assigneeName = &id
 	}
 
 	return project.UnmarshalTaskFromDB(
@@ -51,7 +51,7 @@ func (dto *taskDTO) toDomain() (*project.Task, error) {
 		dto.Title,
 		dto.Description,
 		dto.DueDate,
-		assigneeID,
+		assigneeName,
 		dto.CreatedAt,
 		dto.CompletedAt,
 		project.TaskStatus(dto.Status),
@@ -59,21 +59,21 @@ func (dto *taskDTO) toDomain() (*project.Task, error) {
 }
 
 func toDTO(t *project.Task) *taskDTO {
-	var assigneeID *uint64
-	if t.AssigneeID() != nil {
-		nr := uint64(*t.AssigneeID())
-		assigneeID = &nr
+	var assigneeName *string
+	if t.Asignee() != nil {
+		nr := string(*t.Asignee())
+		assigneeName = &nr
 	}
 
 	return &taskDTO{
-		ID:          string(t.ID()),
-		Title:       t.Title(),
-		Description: t.Description(),
-		DueDate:     t.DueDate(),
-		AssigneeID:  assigneeID,
-		CreatedAt:   t.CreatedAt(),
-		CompletedAt: t.CompletedAt(),
-		Status:      string(t.Status()),
+		ID:           string(t.ID()),
+		Title:        t.Title(),
+		Description:  t.Description(),
+		DueDate:      t.DueDate(),
+		AssigneeName: assigneeName,
+		CreatedAt:    t.CreatedAt(),
+		CompletedAt:  t.CompletedAt(),
+		Status:       string(t.Status()),
 	}
 }
 
@@ -106,8 +106,8 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task)
 	dto := toDTO(task)
 
 	_, err := r.db.NamedExecContext(ctx,
-		`INSERT INTO tasks (id, title, description, due_date, assignee_id, created_at, completed_at, status)
-		VALUES (:id, :title, :description, :due_date, :assignee_id, :created_at, :completed_at, :status)`,
+		`INSERT INTO tasks (id, title, description, due_date, assignee, created_at, completed_at, status)
+		VALUES (:id, :title, :description, :due_date, :assignee, :created_at, :completed_at, :status)`,
 		dto,
 	)
 
@@ -117,7 +117,7 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task)
 func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID) (*project.Task, error) {
 	var dto taskDTO
 	err := r.db.GetContext(ctx, &dto,
-		`SELECT id, title, description, due_date, assignee_id, created_at, completed_at, status
+		`SELECT id, title, description, due_date, assignee, created_at, completed_at, status
 		FROM tasks WHERE id = $1`,
 		string(id),
 	)
@@ -141,7 +141,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 
 	var dto taskDTO
 	err = tx.GetContext(ctx, &dto,
-		`SELECT id, title, description, due_date, assignee_id, created_at, completed_at, status
+		`SELECT id, title, description, due_date, assignee, created_at, completed_at, status
 		FROM tasks WHERE id = $1 FOR UPDATE`,
 		string(id),
 	)
@@ -167,7 +167,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 	_, err = tx.NamedExecContext(ctx,
 		`UPDATE tasks 
 		SET title = :title, description = :description, due_date = :due_date, 
-			assignee_id = :assignee_id, created_at = :created_at, 
+			assignee = :assignee, created_at = :created_at, 
 			completed_at = :completed_at, status = :status
 		WHERE id = :id`,
 		updatedDTO,

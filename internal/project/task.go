@@ -32,7 +32,7 @@ type Task struct {
 	title       string
 	description *string
 	dueDate     *time.Time
-	assigneeID  *TeamMemberID
+	asigneeName *string
 	createdAt   time.Time
 	completedAt *time.Time
 	status      TaskStatus
@@ -53,7 +53,7 @@ var (
 	ErrDueDateInPast = errors.New("due date cannot be in the past")
 )
 
-func NewTask(id TaskID, title string, description *string, dueDate *time.Time, assigneeID *TeamMemberID) (*Task, error) {
+func NewTask(id TaskID, title string, description *string, dueDate *time.Time, assigneeName *string) (*Task, error) {
 	if len(title) > 50 {
 		return nil, ErrTitleTooLong
 	}
@@ -66,7 +66,7 @@ func NewTask(id TaskID, title string, description *string, dueDate *time.Time, a
 		id:          id,
 		createdAt:   time.Now(),
 		dueDate:     dueDate,
-		assigneeID:  assigneeID,
+		asigneeName: assigneeName,
 		title:       title,
 		description: description,
 		status:      TaskStatusPending,
@@ -94,16 +94,16 @@ func (t *Task) MarkInReview() {
 	t.status = TaskStatusInReview
 }
 
-func (t *Task) AssignTo(userID *TeamMemberID) error {
-	if userID == nil {
+func (t *Task) AssignTo(memberName *string) error {
+	if memberName == nil {
 		return errors.New("user ID cannot be nil")
 	}
-	t.assigneeID = userID
+	t.asigneeName = memberName
 	return nil
 }
 
 func (t *Task) Unassign() {
-	t.assigneeID = nil
+	t.asigneeName = nil
 }
 
 func (t *Task) ID() TaskID {
@@ -130,11 +130,11 @@ func (t *Task) DueDate() *time.Time {
 	return &copy
 }
 
-func (t *Task) AssigneeID() *TeamMemberID {
-	if t.assigneeID == nil {
+func (t *Task) Asignee() *string {
+	if t.asigneeName == nil {
 		return nil
 	}
-	copy := *t.assigneeID
+	copy := *t.asigneeName
 	return &copy
 }
 
@@ -159,12 +159,12 @@ func UnmarshalTaskFromDB(
 	title string,
 	description *string,
 	dueDate *time.Time,
-	assigneeID *TeamMemberID,
+	assigneeName *string,
 	createdAt time.Time,
 	completedAt *time.Time,
 	status TaskStatus,
 ) (*Task, error) {
-	task, err := NewTask(id, title, description, dueDate, assigneeID)
+	task, err := NewTask(id, title, description, dueDate, assigneeName)
 	if err != nil {
 		return nil, err
 	}

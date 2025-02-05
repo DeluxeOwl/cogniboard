@@ -71,11 +71,11 @@ func setupPostgresRepo(ctx context.Context, t *testing.T) (repo *PostgresTaskRep
 	}
 }
 
-func createTaskWithID(t *testing.T, title string, description *string, dueDate *time.Time, assigneeID *project.TeamMemberID) (task *project.Task) {
+func createTaskWithID(t *testing.T, title string, description *string, dueDate *time.Time, assigneeName *string) (task *project.Task) {
 	taskID, err := project.NewTaskID()
 	require.NoError(t, err)
 
-	task, err = project.NewTask(taskID, title, description, dueDate, assigneeID)
+	task, err = project.NewTask(taskID, title, description, dueDate, assigneeName)
 	require.NoError(t, err)
 
 	return task
@@ -115,8 +115,8 @@ func Test_RepoGetByID(t *testing.T) {
 	t.Run("successfully retrieves existing task with all fields", func(t *testing.T) {
 		description := "test description"
 		dueDate := time.Now().Add(24 * time.Hour)
-		assigneeID := project.TeamMemberID(1)
-		task := createTaskWithID(t, "test task", &description, &dueDate, &assigneeID)
+		assigneeName := "john"
+		task := createTaskWithID(t, "test task", &description, &dueDate, &assigneeName)
 
 		err := repo.Create(ctx, task)
 		require.NoError(t, err)
@@ -129,7 +129,7 @@ func Test_RepoGetByID(t *testing.T) {
 		require.Equal(t, task.Title(), taskFromDB.Title())
 		require.Equal(t, task.Description(), taskFromDB.Description())
 		require.Equal(t, task.DueDate().UTC(), taskFromDB.DueDate().UTC())
-		require.Equal(t, task.AssigneeID(), taskFromDB.AssigneeID())
+		require.Equal(t, task.Asignee(), taskFromDB.Asignee())
 		require.Equal(t, task.Status(), taskFromDB.Status())
 		require.Equal(t, task.CreatedAt().UTC(), taskFromDB.CreatedAt().UTC())
 		require.Equal(t, task.CompletedAt(), taskFromDB.CompletedAt())
@@ -174,15 +174,15 @@ func Test_RepoUpdateTask(t *testing.T) {
 		err := repo.Create(ctx, task)
 		require.NoError(t, err)
 
-		assigneeID := project.TeamMemberID(1)
+		assigneeName := "john"
 		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
-			return t, t.AssignTo(&assigneeID)
+			return t, t.AssignTo(&assigneeName)
 		})
 		require.NoError(t, err)
 
 		updatedTask, err := repo.GetByID(ctx, task.ID())
 		require.NoError(t, err)
-		require.Equal(t, &assigneeID, updatedTask.AssigneeID())
+		require.Equal(t, &assigneeName, updatedTask.Asignee())
 	})
 
 	t.Run("rolls back transaction on update function error", func(t *testing.T) {
