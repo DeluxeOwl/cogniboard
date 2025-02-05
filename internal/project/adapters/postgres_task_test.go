@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DeluxeOwl/cogniboard/internal/postgres"
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/docker/go-connections/nat"
 	"github.com/stretchr/testify/require"
@@ -59,7 +60,7 @@ func setupPostgresRepo(ctx context.Context, t *testing.T) (repo *PostgresTaskRep
 	endpoint, err := postgresContainer.Endpoint(ctx, "")
 	require.NoError(t, err)
 
-	db, err := ConnectDB(pgCreds.DSN(endpoint))
+	db, err := postgres.NewPostgresWithMigrate(pgCreds.DSN(endpoint))
 	require.NoError(t, err)
 	require.NotNil(t, db)
 

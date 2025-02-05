@@ -7,26 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/stdlib"
-
 	// postgres driver
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/jmoiron/sqlx"
 )
-
-const createTasksTable = `
-CREATE TABLE IF NOT EXISTS tasks (
-    id UUID PRIMARY KEY,
-    title VARCHAR(50) NOT NULL,
-    description TEXT,
-    due_date TIMESTAMP WITH TIME ZONE,
-    assignee TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    status VARCHAR(20) NOT NULL
-);
-`
 
 type taskDTO struct {
 	ID           string     `db:"id"`
@@ -90,16 +74,7 @@ func NewPostgresTaskRepository(db *sqlx.DB) (*PostgresTaskRepository, error) {
 		db: db,
 	}
 
-	if err := repo.createSchema(context.Background()); err != nil {
-		return nil, fmt.Errorf("create schema: %w", err)
-	}
-
 	return repo, nil
-}
-
-func (r *PostgresTaskRepository) createSchema(ctx context.Context) error {
-	_, err := r.db.ExecContext(ctx, createTasksTable)
-	return err
 }
 
 func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task) error {
@@ -182,31 +157,4 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 	}
 
 	return nil
-}
-
-// ConnectDB creates a new sqlx.DB instance with connection settings
-func ConnectDB(dsn string) (*sqlx.DB, error) {
-	config, err := pgx.ParseConfig(dsn)
-	if err != nil {
-		return nil, fmt.Errorf("parse DSN: %w", err)
-	}
-
-	// Set timeouts
-	config.ConnectTimeout = 10 * time.Second
-	config.RuntimeParams["statement_timeout"] = "30000" // 30 seconds
-	config.RuntimeParams["idle_in_transaction_session_timeout"] = "30000"
-
-	connStr := stdlib.RegisterConnConfig(config)
-	db, err := sqlx.Connect("pgx", connStr)
-	if err != nil {
-		return nil, fmt.Errorf("connect to database: %w", err)
-	}
-
-	// Configure connection pool
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
-	db.SetConnMaxIdleTime(5 * time.Minute)
-
-	return db, nil
 }
