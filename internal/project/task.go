@@ -2,6 +2,7 @@ package project
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,7 +20,6 @@ const (
 	TaskStatusCompleted  TaskStatus = "completed"
 )
 
-//go:generate go run github.com/yujiachen-y/goaccessor@latest --target Task --pure-getter
 type Task struct {
 	id          taskID
 	title       string
@@ -39,7 +39,22 @@ func NewTaskID() (taskID, error) {
 	return taskID(id.String()), nil
 }
 
+const MaxTitleLength = 50
+
+var (
+	ErrTitleTooLong  = fmt.Errorf("title cannot be longer than %d characters", MaxTitleLength)
+	ErrDueDateInPast = errors.New("due date cannot be in the past")
+)
+
 func NewTask(id taskID, title string, description *string, dueDate *time.Time, assigneeID *TeamMemberID) (*Task, error) {
+	if len(title) > 50 {
+		return nil, ErrTitleTooLong
+	}
+
+	if dueDate != nil && dueDate.Before(time.Now()) {
+		return nil, ErrDueDateInPast
+	}
+
 	task := &Task{
 		id:          id,
 		createdAt:   time.Now(),
