@@ -12,8 +12,8 @@ type Application struct {
 
 type Commands struct {
 	ChangeTaskStatus commands.ChangeTaskStatusHandler
-	AssignTask       struct{}
-	UnassignTask     struct{}
+	AssignTask       commands.AssignTaskHandler
+	UnassignTask     commands.UnassignTaskHandler
 }
 
 type Queries struct {

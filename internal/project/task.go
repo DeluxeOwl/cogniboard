@@ -98,7 +98,7 @@ func (t *Task) ChangeStatus(status TaskStatus) error {
 
 func (t *Task) AssignTo(memberName *string) error {
 	if memberName == nil {
-		return errors.New("user ID cannot be nil")
+		return errors.New("user name cannot be nil")
 	}
 	t.asigneeName = memberName
 	return nil
