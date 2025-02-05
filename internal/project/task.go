@@ -12,11 +12,11 @@ import (
 
 type TaskRepository interface {
 	Create(ctx context.Context, task *Task) error
-	GetByID(ctx context.Context, id taskID) (*Task, error)
-	UpdateTask(ctx context.Context, id taskID, updateFn func(t *Task) (*Task, error)) error
+	GetByID(ctx context.Context, id TaskID) (*Task, error)
+	UpdateTask(ctx context.Context, id TaskID, updateFn func(t *Task) (*Task, error)) error
 }
 
-type taskID string
+type TaskID string
 
 type TaskStatus string
 
@@ -28,7 +28,7 @@ const (
 )
 
 type Task struct {
-	id          taskID
+	id          TaskID
 	title       string
 	description *string
 	dueDate     *time.Time
@@ -38,12 +38,12 @@ type Task struct {
 	status      TaskStatus
 }
 
-func NewTaskID() (taskID, error) {
+func NewTaskID() (TaskID, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return "", err
 	}
-	return taskID(id.String()), nil
+	return TaskID(id.String()), nil
 }
 
 const MaxTitleLength = 50
@@ -53,7 +53,7 @@ var (
 	ErrDueDateInPast = errors.New("due date cannot be in the past")
 )
 
-func NewTask(id taskID, title string, description *string, dueDate *time.Time, assigneeID *TeamMemberID) (*Task, error) {
+func NewTask(id TaskID, title string, description *string, dueDate *time.Time, assigneeID *TeamMemberID) (*Task, error) {
 	if len(title) > 50 {
 		return nil, ErrTitleTooLong
 	}
@@ -106,7 +106,7 @@ func (t *Task) Unassign() {
 	t.assigneeID = nil
 }
 
-func (t *Task) ID() taskID {
+func (t *Task) ID() TaskID {
 	return t.id
 }
 
@@ -154,8 +154,8 @@ func (t *Task) Status() TaskStatus {
 	return t.status
 }
 
-func UnmarshalFromDB(
-	id taskID,
+func UnmarshalTaskFromDB(
+	id TaskID,
 	title string,
 	description *string,
 	dueDate *time.Time,

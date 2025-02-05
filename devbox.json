@@ -1,8 +1,20 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
-  "packages": [
-    "go@latest",
-    "gofumpt@latest"
-  ],
+  "packages": {
+    "go":      "latest",
+    "gofumpt": "latest",
+    "darwin.apple_sdk.frameworks.IOKit": {
+      "platforms": ["aarch64-darwin"]
+    },
+    "darwin.apple_sdk.frameworks.CoreServices": {
+      "platforms": ["aarch64-darwin"]
+    },
+    "darwin.apple_sdk.frameworks.CoreFoundation": {
+      "platforms": ["aarch64-darwin"]
+    },
+    "darwin.apple_sdk.frameworks.DiskArbitration": {
+      "platforms": ["aarch64-darwin"]
+    }
+  },
   "shell": {}
 }

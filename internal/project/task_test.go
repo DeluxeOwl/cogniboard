@@ -11,7 +11,7 @@ import (
 func TestNewTask(t *testing.T) {
 	t.Run("creates task with valid input", func(t *testing.T) {
 		// Arrange
-		id := taskID("test-id")
+		id := TaskID("test-id")
 		title := "Test Task"
 		description := "Test Description"
 		now := time.Now().Add(24 * time.Hour)
@@ -33,7 +33,7 @@ func TestNewTask(t *testing.T) {
 
 	t.Run("fails with too long title", func(t *testing.T) {
 		// Arrange
-		id := taskID("test-id")
+		id := TaskID("test-id")
 		title := "This is a very long title that exceeds the maximum length limit"
 
 		// Act
@@ -46,7 +46,7 @@ func TestNewTask(t *testing.T) {
 
 	t.Run("fails with past due date", func(t *testing.T) {
 		// Arrange
-		id := taskID("test-id")
+		id := TaskID("test-id")
 		title := "Test Task"
 		pastDate := time.Now().Add(-24 * time.Hour)
 
@@ -61,7 +61,7 @@ func TestNewTask(t *testing.T) {
 
 func TestTaskStatusTransitions(t *testing.T) {
 	// Arrange
-	task, err := NewTask(taskID("test-id"), "Test Task", nil, nil, nil)
+	task, err := NewTask(TaskID("test-id"), "Test Task", nil, nil, nil)
 	require.NoError(t, err)
 
 	t.Run("completes task", func(t *testing.T) {
@@ -103,7 +103,7 @@ func TestTaskStatusTransitions(t *testing.T) {
 
 func TestTaskAssignment(t *testing.T) {
 	// Arrange
-	task, err := NewTask(taskID("test-id"), "Test Task", nil, nil, nil)
+	task, err := NewTask(TaskID("test-id"), "Test Task", nil, nil, nil)
 	require.NoError(t, err)
 
 	t.Run("assigns task to user", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestTaskGetters(t *testing.T) {
 	description := "Test Description"
 	dueDate := time.Now().Add(24 * time.Hour)
 	assigneeID := TeamMemberID("user-1")
-	task, err := NewTask(taskID("test-id"), "Test Task", &description, &dueDate, &assigneeID)
+	task, err := NewTask(TaskID("test-id"), "Test Task", &description, &dueDate, &assigneeID)
 	require.NoError(t, err)
 
 	t.Run("returns copies of pointer values", func(t *testing.T) {
@@ -163,7 +163,7 @@ func TestTaskGetters(t *testing.T) {
 
 	t.Run("handles nil values", func(t *testing.T) {
 		// Arrange
-		task, err := NewTask(taskID("test-id"), "Test Task", nil, nil, nil)
+		task, err := NewTask(TaskID("test-id"), "Test Task", nil, nil, nil)
 		require.NoError(t, err)
 
 		// Act & Assert
@@ -177,7 +177,7 @@ func TestTaskGetters(t *testing.T) {
 func TestUnmarshalFromDB(t *testing.T) {
 	t.Run("unmarshals valid task", func(t *testing.T) {
 		// Arrange
-		id := taskID("test-id")
+		id := TaskID("test-id")
 		title := "Test Task"
 		description := "Test Description"
 		now := time.Now()
@@ -186,7 +186,7 @@ func TestUnmarshalFromDB(t *testing.T) {
 		completedAt := now.Add(12 * time.Hour)
 
 		// Act
-		task, err := UnmarshalFromDB(
+		task, err := UnmarshalTaskFromDB(
 			id,
 			title,
 			&description,
@@ -215,8 +215,8 @@ func TestUnmarshalFromDB(t *testing.T) {
 		now := time.Now()
 
 		// Act
-		task, err := UnmarshalFromDB(
-			taskID("test-id"),
+		task, err := UnmarshalTaskFromDB(
+			TaskID("test-id"),
 			title,
 			nil,
 			nil,

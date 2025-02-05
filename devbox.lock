@@ -1,6 +1,22 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "darwin.apple_sdk.frameworks.CoreFoundation": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#darwin.apple_sdk.frameworks.CoreFoundation",
+      "source": "nixpkg"
+    },
+    "darwin.apple_sdk.frameworks.CoreServices": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#darwin.apple_sdk.frameworks.CoreServices",
+      "source": "nixpkg"
+    },
+    "darwin.apple_sdk.frameworks.DiskArbitration": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#darwin.apple_sdk.frameworks.DiskArbitration",
+      "source": "nixpkg"
+    },
+    "darwin.apple_sdk.frameworks.IOKit": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#darwin.apple_sdk.frameworks.IOKit",
+      "source": "nixpkg"
+    },
     "go@latest": {
       "last_modified": "2025-01-19T08:16:51Z",
       "resolved": "github:NixOS/nixpkgs/50165c4f7eb48ce82bd063e1fb8047a0f515f8ce#go",
