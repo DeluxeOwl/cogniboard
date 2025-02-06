@@ -1,8 +1,4 @@
-import {
-	getTasksQueryKey,
-	useTaskChangeStatus,
-	useTasks,
-} from "@/api/cogniboard";
+import { getTasksQueryKey, useTaskChangeStatus, useTasks } from "@/api/cogniboard";
 import { useQueryClient } from "@tanstack/react-query";
 import AddTaskDialog from "./project/add.task";
 import {
@@ -58,17 +54,29 @@ function useKanbanBoard() {
 		const queryKey = getTasksQueryKey();
 		const previousTasks = queryClient.getQueryData(queryKey);
 
+		// Optimistically update the task status
+		queryClient.setQueryData(queryKey, (old: any) => ({
+			...old,
+			data: {
+				...old.data,
+				tasks: old.data.tasks.map((task: any) =>
+					task.id === taskId ? { ...task, status: newStatus } : task
+				),
+			},
+		}));
+
 		mutation.mutate(
 			{ taskId, data: { status: newStatus } },
 			{
+				// Still invalidate on success to ensure we have the latest data
 				onSuccess: () => {
 					queryClient.invalidateQueries({ queryKey: queryKey });
 				},
-
+				// Revert to previous state on error
 				onError: () => {
 					queryClient.setQueryData(queryKey, previousTasks);
 				},
-			},
+			}
 		);
 	};
 
@@ -102,10 +110,19 @@ const Home = () => {
 			<span className="ms-4">
 				<AddTaskDialog />
 			</span>
-			<KanbanProvider onDragEnd={handleDragEnd} className="p-4">
+			<KanbanProvider
+				onDragEnd={handleDragEnd}
+				className="p-4"
+			>
 				{exampleStatuses.map((status) => (
-					<KanbanBoard key={status.name} id={status.name}>
-						<KanbanHeader name={status.name} color={status.color} />
+					<KanbanBoard
+						key={status.name}
+						id={status.name}
+					>
+						<KanbanHeader
+							name={status.name}
+							color={status.color}
+						/>
 						<KanbanCards>
 							{tasks
 								.filter((task) => task.status === status.name)
@@ -119,15 +136,9 @@ const Home = () => {
 									>
 										<div className="flex items-start justify-between gap-2">
 											<div className="flex flex-col gap-1">
-												<p className="m-0 flex-1 font-bold text-sm">
-													{feature.title}
-												</p>
-												<p className="m-0 text-muted-foreground text-xs">
-													{feature.description}
-												</p>
-												{feature.assignee && (
-													<p>Assigned to: {feature.assignee}</p>
-												)}
+												<p className="m-0 flex-1 font-bold text-sm">{feature.title}</p>
+												<p className="m-0 text-muted-foreground text-xs">{feature.description}</p>
+												{feature.assignee && <p>Assigned to: {feature.assignee}</p>}
 											</div>
 										</div>
 										<p className="m-0 text-muted-foreground text-xs">
