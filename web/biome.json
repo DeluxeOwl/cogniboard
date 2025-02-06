@@ -12,7 +12,8 @@
 			"vite.config.ts",
 			"root.tsx",
 			"routes.ts",
-			"react-router.config.ts"
+			"react-router.config.ts",
+			"api/"
 		]
 	},
 	"formatter": {
@@ -27,7 +28,11 @@
 		"rules": {
 			"all": true,
 			"style": {
-				"noDefaultExport": "off"
+				"noDefaultExport": "off",
+				"noNamespaceImport": "off"
+			},
+			"correctness": {
+				"useImportExtensions": "off"
 			},
 			"suspicious": {
 				"noReactSpecificProps": "off"

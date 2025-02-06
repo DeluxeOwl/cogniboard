@@ -1,4 +1,10 @@
-import { addMonths, endOfMonth, startOfMonth, subDays, subMonths } from "date-fns";
+import {
+	addMonths,
+	endOfMonth,
+	startOfMonth,
+	subDays,
+	subMonths,
+} from "date-fns";
 const today = new Date();
 
 export const exampleStatuses = [

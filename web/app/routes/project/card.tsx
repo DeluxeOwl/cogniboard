@@ -1,7 +1,9 @@
 import { cn } from "@/lib/utils";
-import * as React from "react";
+import type * as React from "react";
 
-type DivElemRef = React.RefObject<HTMLDivElement> | ((element: HTMLElement | null) => void);
+type DivElemRef =
+	| React.RefObject<HTMLDivElement>
+	| ((element: HTMLElement | null) => void);
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 	ref?: DivElemRef;
@@ -11,7 +13,10 @@ function Card({ className, ref, ...props }: CardProps) {
 	return (
 		<div
 			ref={ref}
-			className={cn("rounded-xl border bg-card text-card-foreground shadow", className)}
+			className={cn(
+				"rounded-xl border bg-card text-card-foreground shadow",
+				className,
+			)}
 			{...props}
 		/>
 	);
@@ -34,7 +39,9 @@ function CardHeader({ className, ref, ...props }: CardHeaderProps) {
 CardHeader.displayName = "CardHeader";
 
 interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
-	ref?: React.RefObject<HTMLParagraphElement> | ((element: HTMLElement | null) => void);
+	ref?:
+		| React.RefObject<HTMLParagraphElement>
+		| ((element: HTMLElement | null) => void);
 }
 
 function CardTitle({ className, ref, ...props }: CardTitleProps) {
@@ -48,8 +55,11 @@ function CardTitle({ className, ref, ...props }: CardTitleProps) {
 }
 CardTitle.displayName = "CardTitle";
 
-interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {
-	ref?: React.RefObject<HTMLParagraphElement> | ((element: HTMLElement | null) => void);
+interface CardDescriptionProps
+	extends React.HTMLAttributes<HTMLParagraphElement> {
+	ref?:
+		| React.RefObject<HTMLParagraphElement>
+		| ((element: HTMLElement | null) => void);
 }
 
 function CardDescription({ className, ref, ...props }: CardDescriptionProps) {
@@ -68,13 +78,7 @@ interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 function CardContent({ className, ref, ...props }: CardContentProps) {
-	return (
-		<div
-			ref={ref}
-			className={cn("p-6 pt-0", className)}
-			{...props}
-		/>
-	);
+	return <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />;
 }
 CardContent.displayName = "CardContent";
 
@@ -93,4 +97,11 @@ function CardFooter({ className, ref, ...props }: CardFooterProps) {
 }
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+export {
+	Card,
+	CardHeader,
+	CardFooter,
+	CardTitle,
+	CardDescription,
+	CardContent,
+};
