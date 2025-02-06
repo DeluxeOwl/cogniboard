@@ -120,7 +120,7 @@ export interface ErrorModel {
   type?: string;
 }
 
-export interface GetTasksDTO {
+export interface TaskDTO {
   /** @nullable */
   assignee: string | null;
   /** @nullable */
@@ -135,11 +135,11 @@ export interface GetTasksDTO {
   title: string;
 }
 
-export interface Tasks {
+export interface TasksDTO {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
   /** @nullable */
-  tasks: GetTasksDTO[] | null;
+  tasks: TaskDTO[] | null;
 }
 
 
@@ -151,7 +151,7 @@ export interface Tasks {
  */
 export const tasks = (
      options?: AxiosRequestConfig
- ): Promise<AxiosResponse<Tasks>> => {
+ ): Promise<AxiosResponse<TasksDTO>> => {
     
     
     return axios.get(
@@ -235,7 +235,7 @@ export function useTasks<TData = Awaited<ReturnType<typeof tasks>>, TError = Axi
 /**
  * @summary Create a task
  */
-export const createTask = (
+export const taskCreate = (
     createTaskDTO: NonReadonly<CreateTaskDTO>, options?: AxiosRequestConfig
  ): Promise<AxiosResponse<void>> => {
     
@@ -248,11 +248,11 @@ export const createTask = (
 
 
 
-export const getCreateTaskMutationOptions = <TError = AxiosError<ErrorModel>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: NonReadonly<CreateTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
-): UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: NonReadonly<CreateTaskDTO>}, TContext> => {
+export const getTaskCreateMutationOptions = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskCreate>>, TError,{data: NonReadonly<CreateTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationOptions<Awaited<ReturnType<typeof taskCreate>>, TError,{data: NonReadonly<CreateTaskDTO>}, TContext> => {
     
-const mutationKey = ['createTask'];
+const mutationKey = ['taskCreate'];
 const {mutation: mutationOptions, axios: axiosOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -262,10 +262,10 @@ const {mutation: mutationOptions, axios: axiosOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTask>>, {data: NonReadonly<CreateTaskDTO>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof taskCreate>>, {data: NonReadonly<CreateTaskDTO>}> = (props) => {
           const {data} = props ?? {};
 
-          return  createTask(data,axiosOptions)
+          return  taskCreate(data,axiosOptions)
         }
 
         
@@ -273,23 +273,23 @@ const {mutation: mutationOptions, axios: axiosOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateTaskMutationResult = NonNullable<Awaited<ReturnType<typeof createTask>>>
-    export type CreateTaskMutationBody = NonReadonly<CreateTaskDTO>
-    export type CreateTaskMutationError = AxiosError<ErrorModel>
+    export type TaskCreateMutationResult = NonNullable<Awaited<ReturnType<typeof taskCreate>>>
+    export type TaskCreateMutationBody = NonReadonly<CreateTaskDTO>
+    export type TaskCreateMutationError = AxiosError<ErrorModel>
 
     /**
  * @summary Create a task
  */
-export const useCreateTask = <TError = AxiosError<ErrorModel>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: NonReadonly<CreateTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
+export const useTaskCreate = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskCreate>>, TError,{data: NonReadonly<CreateTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
 ): UseMutationResult<
-        Awaited<ReturnType<typeof createTask>>,
+        Awaited<ReturnType<typeof taskCreate>>,
         TError,
         {data: NonReadonly<CreateTaskDTO>},
         TContext
       > => {
 
-      const mutationOptions = getCreateTaskMutationOptions(options);
+      const mutationOptions = getTaskCreateMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

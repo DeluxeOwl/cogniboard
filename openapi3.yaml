@@ -111,7 +111,7 @@ components:
           format: uri
           type: string
       type: object
-    GetTasksDTO:
+    TaskDTO:
       additionalProperties: false
       properties:
         assignee:
@@ -147,18 +147,18 @@ components:
         - completed_at
         - status
       type: object
-    Tasks:
+    TasksDTO:
       additionalProperties: false
       properties:
         $schema:
           description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/Tasks.json
+          example: http://127.0.0.1:8888/v1/api/schemas/TasksDTO.json
           format: uri
           readOnly: true
           type: string
         tasks:
           items:
-            $ref: "#/components/schemas/GetTasksDTO"
+            $ref: "#/components/schemas/TaskDTO"
           nullable: true
           type: array
       required:
@@ -177,7 +177,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Tasks"
+                $ref: "#/components/schemas/TasksDTO"
           description: OK
         default:
           content:
@@ -188,7 +188,7 @@ paths:
       summary: Get all tasks
   /tasks/create:
     post:
-      operationId: create-task
+      operationId: task-create
       requestBody:
         content:
           application/json:

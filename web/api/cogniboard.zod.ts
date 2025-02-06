@@ -29,14 +29,14 @@ export const tasksResponse = zod.object({
 /**
  * @summary Create a task
  */
-export const createTaskBodyTitleMax = 50;
+export const taskCreateBodyTitleMax = 50;
 
 
-export const createTaskBody = zod.object({
+export const taskCreateBody = zod.object({
   "assignee_name": zod.string().optional(),
   "description": zod.string().optional(),
   "due_date": zod.string().datetime().optional(),
-  "title": zod.string().min(1).max(createTaskBodyTitleMax)
+  "title": zod.string().min(1).max(taskCreateBodyTitleMax)
 })
 
 

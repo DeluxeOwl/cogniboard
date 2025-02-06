@@ -1,5 +1,5 @@
-import { getTasksQueryKey, useCreateTask } from "@/api/cogniboard";
-import { createTaskBody } from "@/api/cogniboard.zod";
+import { getTasksQueryKey, useTaskCreate } from "@/api/cogniboard";
+import { taskCreateBody } from "@/api/cogniboard.zod";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -18,7 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
-import { createTaskBodyTitleMax } from "@/api/cogniboard.zod";
+import { taskCreateBodyTitleMax } from "@/api/cogniboard.zod";
 import { Loader2, LucidePlus } from "lucide-react";
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,7 +38,7 @@ export default function AddTaskDialog() {
 	} = form;
 
 	const title = watch("title");
-	const charactersLeft = createTaskBodyTitleMax - (title?.length || 0);
+	const charactersLeft = taskCreateBodyTitleMax - (title?.length || 0);
 
 	return (
 		<Dialog
@@ -73,7 +73,7 @@ export default function AddTaskDialog() {
 										id={`${id}-task-title`}
 										placeholder="TODO: Fix this app"
 										type="text"
-										maxLength={createTaskBodyTitleMax}
+										maxLength={taskCreateBodyTitleMax}
 										{...register("title")}
 										aria-invalid={errors.title ? "true" : "false"}
 									/>
@@ -143,7 +143,7 @@ export default function AddTaskDialog() {
 	);
 }
 
-type FormData = z.infer<typeof createTaskBody>;
+type FormData = z.infer<typeof taskCreateBody>;
 
 interface UseAddTaskProps {
 	onSuccess?: () => void;
@@ -152,14 +152,14 @@ interface UseAddTaskProps {
 export function useAddTask({ onSuccess }: UseAddTaskProps = {}) {
 	const queryClient = useQueryClient();
 	const form = useForm<FormData>({
-		resolver: zodResolver(createTaskBody),
+		resolver: zodResolver(taskCreateBody),
 		defaultValues: {
 			title: "Water the flowers",
 			description: "",
 		},
 	});
 
-	const mutation = useCreateTask();
+	const mutation = useTaskCreate();
 
 	const onSubmit = form.handleSubmit((data) => {
 		mutation.mutate(

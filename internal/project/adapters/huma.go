@@ -3,25 +3,27 @@ package adapters
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/commands"
 	"github.com/danielgtaylor/huma/v2"
 )
 
+// Huma handles HTTP requests using the huma framework
 type Huma struct {
 	api huma.API
 	app *app.Application
 }
 
+// NewHuma creates a new huma HTTP server
 func NewHuma(api huma.API, app *app.Application) *Huma {
 	return &Huma{api: api, app: app}
 }
 
+// Register registers all HTTP routes with huma
 func (h *Huma) Register() {
 	huma.Register(h.api, huma.Operation{
-		OperationID: "create-task",
+		OperationID: "task-create",
 		Method:      http.MethodPost,
 		Path:        "/tasks/create",
 		Summary:     "Create a task",
@@ -56,11 +58,12 @@ func (h *Huma) Register() {
 	}, h.changeTaskStatus)
 }
 
-type CreateTaskDTO struct {
-	Title        string     `json:"title" doc:"Task's name" minLength:"1" maxLength:"50"`
-	Description  *string    `json:"description,omitempty" doc:"Task's description"`
-	DueDate      *time.Time `json:"due_date,omitempty" doc:"Task's due date (if any)" format:"date-time"`
-	AssigneeName *string    `json:"assignee_name,omitempty" doc:"Task's asignee (if any)"`
+// handleError is a helper function to handle errors consistently
+func handleError(err error) error {
+	if err != nil {
+		return huma.Error422UnprocessableEntity("operation failed", err)
+	}
+	return nil
 }
 
 func (h *Huma) createTask(ctx context.Context, input *struct{ Body CreateTaskDTO }) (*struct{}, error) {
@@ -71,36 +74,18 @@ func (h *Huma) createTask(ctx context.Context, input *struct{ Body CreateTaskDTO
 		AssigneeName: input.Body.AssigneeName,
 	})
 
-	if err != nil {
-		return nil, huma.Error422UnprocessableEntity("couldn't create task", err)
-	}
-
-	return nil, nil
+	return nil, handleError(err)
 }
 
-type GetTasksDTO struct {
-	ID          string     `json:"id"`
-	Title       string     `json:"title"`
-	Description *string    `json:"description"`
-	DueDate     *time.Time `json:"due_date"`
-	Assignee    *string    `json:"assignee"`
-	CreatedAt   time.Time  `json:"created_at"`
-	CompletedAt *time.Time `json:"completed_at"`
-	Status      string     `json:"status"`
-}
-type Tasks struct {
-	Tasks []GetTasksDTO `json:"tasks"`
-}
-
-func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body Tasks }, error) {
+func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body TasksDTO }, error) {
 	tasks, err := h.app.Queries.AllTasks.Handle(ctx, struct{}{})
 	if err != nil {
 		return nil, huma.Error400BadRequest("couldn't get tasks", err)
 	}
 
-	dtos := make([]GetTasksDTO, len(tasks))
+	dtos := make([]TaskDTO, len(tasks))
 	for i, task := range tasks {
-		dtos[i] = GetTasksDTO{
+		dtos[i] = TaskDTO{
 			ID:          string(task.ID()),
 			Title:       task.Title(),
 			Description: task.Description(),
@@ -112,13 +97,9 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body Tas
 		}
 	}
 
-	return &struct{ Body Tasks }{
-		Body: Tasks{dtos},
+	return &struct{ Body TasksDTO }{
+		Body: TasksDTO{Tasks: dtos},
 	}, nil
-}
-
-type AssignTaskDTO struct {
-	AssigneeName string `json:"assignee_name" doc:"Name of the person to assign the task to" minLength:"1"`
 }
 
 func (h *Huma) assignTask(ctx context.Context, input *struct {
@@ -130,11 +111,7 @@ func (h *Huma) assignTask(ctx context.Context, input *struct {
 		AssigneeName: input.Body.AssigneeName,
 	})
 
-	if err != nil {
-		return nil, huma.Error422UnprocessableEntity("couldn't assign task", err)
-	}
-
-	return nil, nil
+	return nil, handleError(err)
 }
 
 func (h *Huma) unassignTask(ctx context.Context, input *struct {
@@ -144,15 +121,7 @@ func (h *Huma) unassignTask(ctx context.Context, input *struct {
 		TaskID: input.TaskID,
 	})
 
-	if err != nil {
-		return nil, huma.Error422UnprocessableEntity("couldn't unassign task", err)
-	}
-
-	return nil, nil
-}
-
-type ChangeTaskStatusDTO struct {
-	Status string `json:"status" doc:"New status for the task" minLength:"1"`
+	return nil, handleError(err)
 }
 
 func (h *Huma) changeTaskStatus(ctx context.Context, input *struct {
@@ -164,9 +133,5 @@ func (h *Huma) changeTaskStatus(ctx context.Context, input *struct {
 		Status: input.Body.Status,
 	})
 
-	if err != nil {
-		return nil, huma.Error422UnprocessableEntity("couldn't change task status", err)
-	}
-
-	return nil, nil
+	return nil, handleError(err)
 }
