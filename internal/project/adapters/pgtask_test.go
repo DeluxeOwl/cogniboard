@@ -33,9 +33,9 @@ var (
 	pgImage = "postgres:17-alpine"
 	pgPort  = "5432/tcp"
 	pgCreds = pgTestCreds{
-		db:   "testdb",
-		user: "testuser",
-		pass: "testpass",
+		db:   "cogniboard",
+		user: "cogniboard",
+		pass: "password",
 	}
 )
 
