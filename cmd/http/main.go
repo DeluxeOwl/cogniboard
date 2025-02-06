@@ -14,6 +14,7 @@ import (
 	"github.com/danielgtaylor/huma/v2/adapters/humaecho"
 	"github.com/danielgtaylor/huma/v2/humacli"
 	"github.com/golang-cz/devslog"
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sanity-io/litter"
@@ -33,6 +34,11 @@ type Options struct {
 }
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		// Only log the error, don't exit as .env file is optional
+		slog.Error("Error loading .env file", "error", err)
+	}
+
 	litter.Config.Compact = true
 	cli := humacli.New(func(hooks humacli.Hooks, options *Options) {
 		e := setupEcho()

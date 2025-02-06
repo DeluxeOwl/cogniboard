@@ -49,7 +49,7 @@ const Home = () => {
 								.filter((task) => task.status === status.name)
 								.map((feature, index) => (
 									<KanbanCard
-										key={feature.id}
+										key={feature.created_at}
 										id={feature.id}
 										name={feature.title}
 										parent={status.name}

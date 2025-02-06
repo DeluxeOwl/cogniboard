@@ -22,8 +22,6 @@ tasks:
 
   run-api:
     desc: Run the API service
-    env:
-      SERVICE_POSTGRES_DSN: postgres://cogniboard:password@localhost:5432/cogniboard?sslmode=disable
     cmds:
       - go run cmd/http/main.go
 
@@ -32,6 +30,12 @@ tasks:
     dir: web
     cmds:
       - bunx orval
+
+  web:
+    desc: Start the web sever
+    dir: web
+    cmds:
+      - bun dev
 
   dev:
     desc: Start development environment

@@ -51,7 +51,12 @@ Cogniboard is a full-stack task management application built with modern technol
 
 ### Development Setup
 
-1. Install development dependencies:
+1. Copy the example environment file and modify if needed:
+```bash
+cp .env.example .env
+```
+
+2. Install development dependencies:
 ```bash
 task install
 ```
@@ -105,6 +110,7 @@ The frontend will be available at `http://localhost:5173` by default.
 - `task run-api` - Run the API service
 - `task gen-hooks` - Generate React Query hooks from OpenAPI spec
 - `task dev` - Start development environment (includes Docker and API)
+- `task web` - Start the web server
 
 ## Environment Variables
 
