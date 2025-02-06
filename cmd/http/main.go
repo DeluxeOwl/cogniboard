@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/DeluxeOwl/cogniboard/internal/postgres"
 	"github.com/DeluxeOwl/cogniboard/internal/project/adapters"
@@ -19,7 +20,10 @@ import (
 	_ "github.com/danielgtaylor/huma/v2/formats/cbor"
 )
 
-const EnvDev = "dev"
+const (
+	EnvDev     = "dev"
+	APIVersion = "v1/api"
+)
 
 type Options struct {
 	PostgresDSN string `help:"The postgres connection string"`
@@ -30,13 +34,29 @@ type Options struct {
 func main() {
 	litter.Config.Compact = true
 	cli := humacli.New(func(hooks humacli.Hooks, options *Options) {
-		e := echo.New()
+		e := setupEcho()
+		api := setupAPI(e, options.Host)
+		logger := setupLogger(options.Env)
+		app := setupApplication(options.PostgresDSN, logger)
+		setupHTTPHandlers(api, app)
 
-		v1apiGroup := "v1/api"
-		v1 := e.Group("/" + v1apiGroup)
+		hooks.OnStart(func() {
+			logger.Info("Server started", "host", options.Host)
+			saveOpenAPISpec(api)
+			http.ListenAndServe(options.Host, e)
+		})
+	})
 
-		v1.GET("/docs", func(c echo.Context) error {
-			return c.HTML(http.StatusOK, fmt.Sprintf(`<!doctype html>
+	cli.Run()
+}
+
+func setupEcho() *echo.Echo {
+	e := echo.New()
+	v1 := e.Group("/" + APIVersion)
+
+	// Setup documentation endpoint
+	v1.GET("/docs", func(c echo.Context) error {
+		return c.HTML(http.StatusOK, fmt.Sprintf(`<!doctype html>
 <html>
   <head>
     <title>API Reference</title>
@@ -51,49 +71,64 @@ func main() {
       data-url="/%s/openapi.json"></script>
     <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
   </body>
-</html>`, v1apiGroup))
-		})
-
-		config := huma.DefaultConfig("CogniBoard", "0.0.1")
-		config.Servers = []*huma.Server{
-			{URL: fmt.Sprintf("http://%s/%s", options.Host, v1apiGroup)},
-		}
-		config.DocsPath = ""
-
-		dsn := options.PostgresDSN
-		db, err := postgres.NewPostgresWithMigrate(dsn)
-		if err != nil {
-			panic(err)
-		}
-
-		repo, err := adapters.NewPostgresTaskRepository(db)
-		if err != nil {
-			panic(err)
-		}
-
-		var handler slog.Handler
-		if options.Env == EnvDev {
-			handler = devslog.NewHandler(os.Stdout, nil)
-		} else {
-			handler = slog.NewJSONHandler(os.Stdout, nil)
-		}
-
-		logger := slog.New(handler)
-		app, err := app.New(repo, logger)
-		if err != nil {
-			panic(err)
-		}
-
-		api := humaecho.NewWithGroup(e, v1, config)
-		projectHTTP := adapters.NewHuma(api, app)
-
-		projectHTTP.Register()
-
-		hooks.OnStart(func() {
-			logger.Info("Server started", "host", options.Host)
-			http.ListenAndServe(options.Host, e)
-		})
+</html>`, APIVersion))
 	})
 
-	cli.Run()
+	return e
+}
+
+func setupAPI(e *echo.Echo, host string) huma.API {
+	config := huma.DefaultConfig("CogniBoard", "0.0.1")
+	config.Servers = []*huma.Server{
+		{URL: fmt.Sprintf("http://%s/%s", host, APIVersion)},
+	}
+	config.DocsPath = ""
+
+	return humaecho.NewWithGroup(e, e.Group("/"+APIVersion), config)
+}
+
+func setupLogger(env string) *slog.Logger {
+	var handler slog.Handler
+	if env == EnvDev {
+		handler = devslog.NewHandler(os.Stdout, nil)
+	} else {
+		handler = slog.NewJSONHandler(os.Stdout, nil)
+	}
+	return slog.New(handler)
+}
+
+func setupApplication(dsn string, logger *slog.Logger) *app.Application {
+	db, err := postgres.NewPostgresWithMigrate(dsn)
+	if err != nil {
+		panic(err)
+	}
+
+	repo, err := adapters.NewPostgresTaskRepository(db)
+	if err != nil {
+		panic(err)
+	}
+
+	app, err := app.New(repo, logger)
+	if err != nil {
+		panic(err)
+	}
+
+	return app
+}
+
+func setupHTTPHandlers(api huma.API, app *app.Application) {
+	projectHTTP := adapters.NewHuma(api, app)
+	projectHTTP.Register()
+}
+
+func saveOpenAPISpec(api huma.API) {
+	openapiSpec, err := api.OpenAPI().YAML()
+	if err != nil {
+		panic(err)
+	}
+	filePath := filepath.Join("openapi3.yaml")
+	err = os.WriteFile(filePath, openapiSpec, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
