@@ -1,6 +1,11 @@
-import { exampleFeatures, exampleStatuses } from "@/lib/content";
-import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "./project/avatar";
+import {
+	getGetTasksQueryKey,
+	useChangeTaskStatus,
+	useGetTasks,
+	type getTasksResponse,
+} from "@/api/cogniboard";
+import type { GetTasksDTO, Tasks } from "@/api/cogniboard.schemas";
+import { useQueryClient } from "@tanstack/react-query";
 import {
 	KanbanBoard,
 	KanbanCard,
@@ -9,7 +14,6 @@ import {
 	KanbanProvider,
 } from "./project/kanban";
 import type { DragEndEvent } from "./project/kanban.ts";
-import { useGetTasks } from "@/api/cogniboard";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
 	month: "short",
@@ -22,11 +26,20 @@ const shortDateFormatter = new Intl.DateTimeFormat("en-US", {
 	day: "numeric",
 });
 
-const Home = () => {
-	const tasks = useGetTasks();
+const exampleStatuses = [
+	{ id: "1", name: "pending", color: "#6B7280" },
+	{ id: "2", name: "in_progress", color: "#F59E0B" },
+	{ id: "3", name: "in_review", color: "red" },
+	{ id: "4", name: "completed", color: "#10B981" },
+];
 
-	console.info(tasks.data);
-	const [features, setFeatures] = useState(exampleFeatures);
+function getTasks(res: getTasksResponse): GetTasksDTO[] {
+	return (res.data as Tasks).tasks!;
+}
+function useKanbanBoard() {
+	const queryClient = useQueryClient();
+	const { data, isLoading, isError, error } = useGetTasks();
+	const mutation = useChangeTaskStatus();
 
 	const handleDragEnd = (event: DragEndEvent) => {
 		const { active, over } = event;
@@ -41,16 +54,75 @@ const Home = () => {
 			return;
 		}
 
-		setFeatures(
-			features.map((feature) => {
-				if (feature.id === active.id) {
-					return { ...feature, status };
-				}
+		const taskId = String(active.id);
+		const newStatus = status.name;
 
-				return feature;
-			})
+		// Get the current query data
+		const queryKey = getGetTasksQueryKey();
+		const previousTasks = queryClient.getQueryData(queryKey);
+
+		// Optimistically update the task status
+		queryClient.setQueryData(queryKey, (old: getTasksResponse | undefined) => {
+			if (!old) return old;
+			const tasks = getTasks(old);
+			return {
+				...old,
+				data: {
+					tasks: tasks.map((task) =>
+						task.id === taskId
+							? {
+									...task,
+									status: newStatus,
+							  }
+							: task
+					),
+				},
+			};
+		});
+
+		mutation.mutate(
+			{ taskId, data: { status: newStatus } },
+			{
+				onSuccess: () => {
+					queryClient.invalidateQueries({ queryKey: queryKey });
+				},
+
+				onError: () => {
+					queryClient.setQueryData(queryKey, previousTasks);
+				},
+			}
 		);
 	};
+
+	const tasks = data ? getTasks(data) : [];
+
+	return {
+		tasks,
+		isLoading,
+		isError,
+		error,
+		handleDragEnd,
+	};
+}
+
+const Home = () => {
+	const { tasks, isLoading, isError, error, handleDragEnd } = useKanbanBoard();
+
+	if (isLoading) {
+		return <div>Loading ...</div>;
+	}
+
+	if (isError && error) {
+		return (
+			<div>
+				Error: {error.title} {error.errors?.map((e) => e.message).join(", ")}
+			</div>
+		);
+	}
+
+	if (isError) {
+		return <div>An unexpected error occurred</div>;
+	}
 
 	return (
 		<KanbanProvider
@@ -67,31 +139,28 @@ const Home = () => {
 						color={status.color}
 					/>
 					<KanbanCards>
-						{features
-							.filter((feature) => feature.status.name === status.name)
+						{tasks
+							.filter((task) => task.status === status.name)
 							.map((feature, index) => (
 								<KanbanCard
 									key={feature.id}
 									id={feature.id}
-									name={feature.name}
+									name={feature.title}
 									parent={status.name}
 									index={index}
 								>
 									<div className="flex items-start justify-between gap-2">
 										<div className="flex flex-col gap-1">
-											<p className="m-0 flex-1 font-medium text-sm">{feature.name}</p>
-											<p className="m-0 text-muted-foreground text-xs">{feature.initiative.name}</p>
+											<p className="m-0 flex-1 font-bold text-sm">{feature.title}</p>
+											<p className="m-0 text-muted-foreground text-xs">{feature.description}</p>
+											{feature.assignee && <p>Assigned to: {feature.assignee}</p>}
 										</div>
-										{feature.owner && (
-											<Avatar className="h-4 w-4 shrink-0">
-												<AvatarImage src={feature.owner.image} />
-												<AvatarFallback>{feature.owner.name?.slice(0, 2)}</AvatarFallback>
-											</Avatar>
-										)}
 									</div>
 									<p className="m-0 text-muted-foreground text-xs">
-										{shortDateFormatter.format(feature.startAt)} -{" "}
-										{dateFormatter.format(feature.endAt)}
+										{shortDateFormatter.format(new Date(feature.created_at))}
+										{feature.completed_at
+											? `- ${dateFormatter.format(new Date(feature.completed_at))}`
+											: null}
 									</p>
 								</KanbanCard>
 							))}

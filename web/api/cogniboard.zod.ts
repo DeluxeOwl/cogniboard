@@ -22,7 +22,7 @@ export const getTasksResponse = zod.object({
 				id: zod.string(),
 				status: zod.string(),
 				title: zod.string(),
-			}),
+			})
 		)
 		.nullable(),
 });
