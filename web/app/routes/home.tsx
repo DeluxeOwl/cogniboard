@@ -1,11 +1,12 @@
 import {
 	getGetTasksQueryKey,
+	type getTasksResponse,
 	useChangeTaskStatus,
 	useGetTasks,
-	type getTasksResponse,
 } from "@/api/cogniboard";
 import type { GetTasksDTO, Tasks } from "@/api/cogniboard.schemas";
 import { useQueryClient } from "@tanstack/react-query";
+import AddTaskDialog from "./project/add.task";
 import {
 	KanbanBoard,
 	KanbanCard,
@@ -73,8 +74,8 @@ function useKanbanBoard() {
 							? {
 									...task,
 									status: newStatus,
-							  }
-							: task
+								}
+							: task,
 					),
 				},
 			};
@@ -90,7 +91,7 @@ function useKanbanBoard() {
 				onError: () => {
 					queryClient.setQueryData(queryKey, previousTasks);
 				},
-			}
+			},
 		);
 	};
 
@@ -125,49 +126,51 @@ const Home = () => {
 	}
 
 	return (
-		<KanbanProvider
-			onDragEnd={handleDragEnd}
-			className="p-4"
-		>
-			{exampleStatuses.map((status) => (
-				<KanbanBoard
-					key={status.name}
-					id={status.name}
-				>
-					<KanbanHeader
-						name={status.name}
-						color={status.color}
-					/>
-					<KanbanCards>
-						{tasks
-							.filter((task) => task.status === status.name)
-							.map((feature, index) => (
-								<KanbanCard
-									key={feature.id}
-									id={feature.id}
-									name={feature.title}
-									parent={status.name}
-									index={index}
-								>
-									<div className="flex items-start justify-between gap-2">
-										<div className="flex flex-col gap-1">
-											<p className="m-0 flex-1 font-bold text-sm">{feature.title}</p>
-											<p className="m-0 text-muted-foreground text-xs">{feature.description}</p>
-											{feature.assignee && <p>Assigned to: {feature.assignee}</p>}
+		<main className="p-2">
+			<span className="ms-4">
+				<AddTaskDialog />
+			</span>
+			<KanbanProvider onDragEnd={handleDragEnd} className="p-4">
+				{exampleStatuses.map((status) => (
+					<KanbanBoard key={status.name} id={status.name}>
+						<KanbanHeader name={status.name} color={status.color} />
+						<KanbanCards>
+							{tasks
+								.filter((task) => task.status === status.name)
+								.map((feature, index) => (
+									<KanbanCard
+										key={feature.id}
+										id={feature.id}
+										name={feature.title}
+										parent={status.name}
+										index={index}
+									>
+										<div className="flex items-start justify-between gap-2">
+											<div className="flex flex-col gap-1">
+												<p className="m-0 flex-1 font-bold text-sm">
+													{feature.title}
+												</p>
+												<p className="m-0 text-muted-foreground text-xs">
+													{feature.description}
+												</p>
+												{feature.assignee && (
+													<p>Assigned to: {feature.assignee}</p>
+												)}
+											</div>
 										</div>
-									</div>
-									<p className="m-0 text-muted-foreground text-xs">
-										{shortDateFormatter.format(new Date(feature.created_at))}
-										{feature.completed_at
-											? `- ${dateFormatter.format(new Date(feature.completed_at))}`
-											: null}
-									</p>
-								</KanbanCard>
-							))}
-					</KanbanCards>
-				</KanbanBoard>
-			))}
-		</KanbanProvider>
+										<p className="m-0 text-muted-foreground text-xs">
+											{shortDateFormatter.format(new Date(feature.created_at))}
+											{feature.completed_at
+												? `- ${dateFormatter.format(new Date(feature.completed_at))}`
+												: null}
+										</p>
+									</KanbanCard>
+								))}
+						</KanbanCards>
+					</KanbanBoard>
+				))}
+			</KanbanProvider>
+		</main>
 	);
 };
 
