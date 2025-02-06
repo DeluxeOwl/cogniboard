@@ -48,8 +48,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export const queryClient = new QueryClient();
 export default function App() {
-	const { data } = useTasks();
-
 	return (
 		<QueryClientProvider client={queryClient}>
 			<Outlet />
