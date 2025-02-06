@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+
+	"github.com/sanity-io/litter"
 )
 
 type withCmdLogger[C any] struct {
@@ -21,7 +23,7 @@ func (d withCmdLogger[C]) Handle(ctx context.Context, cmd C) (err error) {
 
 	logger := d.log.With(
 		"command", handlerType,
-		"command_body", fmt.Sprintf("%#v", cmd),
+		"command_body", litter.Sdump(cmd),
 	)
 
 	logger.Debug("executing command")
