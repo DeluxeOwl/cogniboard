@@ -15,6 +15,7 @@ import (
 	"github.com/danielgtaylor/huma/v2/humacli"
 	"github.com/golang-cz/devslog"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/sanity-io/litter"
 
 	_ "github.com/danielgtaylor/huma/v2/formats/cbor"
@@ -52,6 +53,9 @@ func main() {
 
 func setupEcho() *echo.Echo {
 	e := echo.New()
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:5173"}, //TODO: hardcoded
+	}))
 	v1 := e.Group("/" + APIVersion)
 
 	// Setup documentation endpoint

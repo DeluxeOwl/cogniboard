@@ -9,6 +9,7 @@ import {
 	KanbanProvider,
 } from "./project/kanban";
 import type { DragEndEvent } from "./project/kanban.ts";
+import { useGetTasks } from "@/api/cogniboard";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
 	month: "short",
@@ -22,6 +23,9 @@ const shortDateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 const Home = () => {
+	const tasks = useGetTasks();
+
+	console.info(tasks.data);
 	const [features, setFeatures] = useState(exampleFeatures);
 
 	const handleDragEnd = (event: DragEndEvent) => {
@@ -44,15 +48,24 @@ const Home = () => {
 				}
 
 				return feature;
-			}),
+			})
 		);
 	};
 
 	return (
-		<KanbanProvider onDragEnd={handleDragEnd} className="p-4">
+		<KanbanProvider
+			onDragEnd={handleDragEnd}
+			className="p-4"
+		>
 			{exampleStatuses.map((status) => (
-				<KanbanBoard key={status.name} id={status.name}>
-					<KanbanHeader name={status.name} color={status.color} />
+				<KanbanBoard
+					key={status.name}
+					id={status.name}
+				>
+					<KanbanHeader
+						name={status.name}
+						color={status.color}
+					/>
 					<KanbanCards>
 						{features
 							.filter((feature) => feature.status.name === status.name)
@@ -66,19 +79,13 @@ const Home = () => {
 								>
 									<div className="flex items-start justify-between gap-2">
 										<div className="flex flex-col gap-1">
-											<p className="m-0 flex-1 font-medium text-sm">
-												{feature.name}
-											</p>
-											<p className="m-0 text-muted-foreground text-xs">
-												{feature.initiative.name}
-											</p>
+											<p className="m-0 flex-1 font-medium text-sm">{feature.name}</p>
+											<p className="m-0 text-muted-foreground text-xs">{feature.initiative.name}</p>
 										</div>
 										{feature.owner && (
 											<Avatar className="h-4 w-4 shrink-0">
 												<AvatarImage src={feature.owner.image} />
-												<AvatarFallback>
-													{feature.owner.name?.slice(0, 2)}
-												</AvatarFallback>
+												<AvatarFallback>{feature.owner.name?.slice(0, 2)}</AvatarFallback>
 											</Avatar>
 										)}
 									</div>
