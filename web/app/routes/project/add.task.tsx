@@ -48,15 +48,12 @@ export default function AddTaskDialog() {
 				onSuccess: () => {
 					setOpen(false);
 				},
-			}
+			},
 		);
 	};
 
 	return (
-		<Dialog
-			open={open}
-			onOpenChange={setOpen}
-		>
+		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild={true}>
 				<Button>
 					<LucidePlus className="size-4 me-2" />
@@ -93,7 +90,10 @@ export default function AddTaskDialog() {
 										role="status"
 										aria-live="polite"
 									>
-										<span className="tabular-nums">{limit - characterCount}</span> characters left
+										<span className="tabular-nums">
+											{limit - characterCount}
+										</span>{" "}
+										characters left
 									</p>
 								</div>
 							</div>
@@ -111,7 +111,8 @@ export default function AddTaskDialog() {
 						</form>
 						{mutation.error && (
 							<div className="mt-4 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-								{mutation.error?.detail || "Failed to create task. Please try again."}
+								{mutation.error.response?.data.title ||
+									"Failed to create task. Please try again."}
 							</div>
 						)}
 					</div>
@@ -141,7 +142,9 @@ export default function AddTaskDialog() {
 						)}
 					</Button>
 				</DialogFooter>
-				{mutation.error ? <p>Got an error: {JSON.stringify(mutation.error)}</p> : null}
+				{mutation.error ? (
+					<p>Got an error: {JSON.stringify(mutation.error)}</p>
+				) : null}
 			</DialogContent>
 		</Dialog>
 	);

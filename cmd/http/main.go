@@ -126,7 +126,7 @@ func setupHTTPHandlers(api huma.API, app *app.Application) {
 }
 
 func saveOpenAPISpec(api huma.API) {
-	openapiSpec, err := api.OpenAPI().YAML()
+	openapiSpec, err := api.OpenAPI().DowngradeYAML()
 	if err != nil {
 		panic(err)
 	}

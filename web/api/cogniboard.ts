@@ -4,520 +4,480 @@
  * CogniBoard
  * OpenAPI spec version: 0.0.1
  */
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery
+} from '@tanstack/react-query'
 import type {
-	DataTag,
-	DefinedInitialDataOptions,
-	DefinedUseQueryResult,
-	MutationFunction,
-	QueryFunction,
-	QueryKey,
-	UndefinedInitialDataOptions,
-	UseMutationOptions,
-	UseMutationResult,
-	UseQueryOptions,
-	UseQueryResult,
-} from "@tanstack/react-query";
+  DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
+  MutationFunction,
+  QueryFunction,
+  QueryKey,
+  UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult
+} from '@tanstack/react-query'
+import axios from 'axios'
 import type {
-	AssignTaskDTO,
-	ChangeTaskStatusDTO,
-	CreateTaskDTO,
-	ErrorModel,
-	Tasks,
-} from "./cogniboard.schemas";
+  AxiosError,
+  AxiosRequestConfig,
+  AxiosResponse
+} from 'axios'
 
 // https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
-type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y
-	? 1
-	: 2
-	? A
-	: B;
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
+T,
+>() => T extends Y ? 1 : 2
+? A
+: B;
 
 type WritableKeys<T> = {
-	[P in keyof T]-?: IfEquals<{ [Q in P]: T[P] }, { -readonly [Q in P]: T[P] }, P>;
+[P in keyof T]-?: IfEquals<
+  { [Q in P]: T[P] },
+  { -readonly [Q in P]: T[P] },
+  P
+>;
 }[keyof T];
 
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void
-	? I
-	: never;
+type UnionToIntersection<U> =
+  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never;
 type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
 
 type Writable<T> = Pick<T, WritableKeys<T>>;
-type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
-	? {
-			[P in keyof Writable<T>]: T[P] extends object ? NonReadonly<NonNullable<T[P]>> : T[P];
-	  }
-	: DistributeReadOnlyOverUnions<T>;
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
+  [P in keyof Writable<T>]: T[P] extends object
+    ? NonReadonly<NonNullable<T[P]>>
+    : T[P];
+} : DistributeReadOnlyOverUnions<T>;
 
-/**
- * @summary Get all tasks
- */
-export type getTasksResponse = {
-	data: Tasks | ErrorModel;
-	status: number;
-	headers: Headers;
-};
-
-export const getGetTasksUrl = () => {
-	return `http://127.0.0.1:8888/v1/api/tasks`;
-};
-
-export const getTasks = async (options?: RequestInit): Promise<getTasksResponse> => {
-	const res = await fetch(getGetTasksUrl(), {
-		...options,
-		method: "GET",
-	});
-
-	const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-	const data: getTasksResponse["data"] = body ? JSON.parse(body) : {};
-
-	return { data, status: res.status, headers: res.headers } as getTasksResponse;
-};
-
-export const getGetTasksQueryKey = () => {
-	return [`http://127.0.0.1:8888/v1/api/tasks`] as const;
-};
-
-export const getGetTasksQueryOptions = <
-	TData = Awaited<ReturnType<typeof getTasks>>,
-	TError = ErrorModel
->(options?: {
-	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTasks>>, TError, TData>>;
-	fetch?: RequestInit;
-}) => {
-	const { query: queryOptions, fetch: fetchOptions } = options ?? {};
-
-	const queryKey = queryOptions?.queryKey ?? getGetTasksQueryKey();
-
-	const queryFn: QueryFunction<Awaited<ReturnType<typeof getTasks>>> = ({ signal }) =>
-		getTasks({ signal, ...fetchOptions });
-
-	return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-		Awaited<ReturnType<typeof getTasks>>,
-		TError,
-		TData
-	> & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GetTasksQueryResult = NonNullable<Awaited<ReturnType<typeof getTasks>>>;
-export type GetTasksQueryError = ErrorModel;
-
-export function useGetTasks<
-	TData = Awaited<ReturnType<typeof getTasks>>,
-	TError = ErrorModel
->(options: {
-	query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTasks>>, TError, TData>> &
-		Pick<
-			DefinedInitialDataOptions<
-				Awaited<ReturnType<typeof getTasks>>,
-				TError,
-				Awaited<ReturnType<typeof getTasks>>
-			>,
-			"initialData"
-		>;
-	fetch?: RequestInit;
-}): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetTasks<
-	TData = Awaited<ReturnType<typeof getTasks>>,
-	TError = ErrorModel
->(options?: {
-	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTasks>>, TError, TData>> &
-		Pick<
-			UndefinedInitialDataOptions<
-				Awaited<ReturnType<typeof getTasks>>,
-				TError,
-				Awaited<ReturnType<typeof getTasks>>
-			>,
-			"initialData"
-		>;
-	fetch?: RequestInit;
-}): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetTasks<
-	TData = Awaited<ReturnType<typeof getTasks>>,
-	TError = ErrorModel
->(options?: {
-	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTasks>>, TError, TData>>;
-	fetch?: RequestInit;
-}): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-/**
- * @summary Get all tasks
- */
-
-export function useGetTasks<
-	TData = Awaited<ReturnType<typeof getTasks>>,
-	TError = ErrorModel
->(options?: {
-	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTasks>>, TError, TData>>;
-	fetch?: RequestInit;
-}): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-	const queryOptions = getGetTasksQueryOptions(options);
-
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-		queryKey: DataTag<QueryKey, TData, TError>;
-	};
-
-	query.queryKey = queryOptions.queryKey;
-
-	return query;
+export interface AssignTaskDTO {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+   * Name of the person to assign the task to
+   * @minLength 1
+   */
+  assignee_name: string;
 }
 
+export interface ChangeTaskStatusDTO {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+   * New status for the task
+   * @minLength 1
+   */
+  status: string;
+}
+
+export interface CreateTaskDTO {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Task's asignee (if any) */
+  assignee_name?: string;
+  /** Task's description */
+  description?: string;
+  /** Task's due date (if any) */
+  due_date?: string;
+  /**
+   * Task's name
+   * @minLength 1
+   * @maxLength 50
+   */
+  title: string;
+}
+
+export interface ErrorDetail {
+  /** Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
+  location?: string;
+  /** Error message text */
+  message?: string;
+  /** The value at the given location */
+  value?: unknown;
+}
+
+export interface ErrorModel {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** A human-readable explanation specific to this occurrence of the problem. */
+  detail?: string;
+  /**
+   * Optional list of individual error details
+   * @nullable
+   */
+  errors?: ErrorDetail[] | null;
+  /** A URI reference that identifies the specific occurrence of the problem. */
+  instance?: string;
+  /** HTTP status code */
+  status?: number;
+  /** A short, human-readable summary of the problem type. This value should not change between occurrences of the error. */
+  title?: string;
+  /** A URI reference to human-readable documentation for the error. */
+  type?: string;
+}
+
+export interface GetTasksDTO {
+  /** @nullable */
+  assignee: string | null;
+  /** @nullable */
+  completed_at: string | null;
+  created_at: string;
+  /** @nullable */
+  description: string | null;
+  /** @nullable */
+  due_date: string | null;
+  id: string;
+  status: string;
+  title: string;
+}
+
+export interface Tasks {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @nullable */
+  tasks: GetTasksDTO[] | null;
+}
+
+
+
+
+
+/**
+ * @summary Get all tasks
+ */
+export const tasks = (
+     options?: AxiosRequestConfig
+ ): Promise<AxiosResponse<Tasks>> => {
+    
+    
+    return axios.get(
+      `http://127.0.0.1:8888/v1/api/tasks`,options
+    );
+  }
+
+
+export const getTasksQueryKey = () => {
+    return [`http://127.0.0.1:8888/v1/api/tasks`] as const;
+    }
+
+    
+export const getTasksQueryOptions = <TData = Awaited<ReturnType<typeof tasks>>, TError = AxiosError<ErrorModel>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasks>>, TError, TData>>, axios?: AxiosRequestConfig}
+) => {
+
+const {query: queryOptions, axios: axiosOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTasksQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tasks>>> = ({ signal }) => tasks({ signal, ...axiosOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tasks>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TasksQueryResult = NonNullable<Awaited<ReturnType<typeof tasks>>>
+export type TasksQueryError = AxiosError<ErrorModel>
+
+
+export function useTasks<TData = Awaited<ReturnType<typeof tasks>>, TError = AxiosError<ErrorModel>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasks>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasks>>,
+          TError,
+          Awaited<ReturnType<typeof tasks>>
+        > , 'initialData'
+      >, axios?: AxiosRequestConfig}
+
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasks<TData = Awaited<ReturnType<typeof tasks>>, TError = AxiosError<ErrorModel>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasks>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasks>>,
+          TError,
+          Awaited<ReturnType<typeof tasks>>
+        > , 'initialData'
+      >, axios?: AxiosRequestConfig}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasks<TData = Awaited<ReturnType<typeof tasks>>, TError = AxiosError<ErrorModel>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasks>>, TError, TData>>, axios?: AxiosRequestConfig}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get all tasks
+ */
+
+export function useTasks<TData = Awaited<ReturnType<typeof tasks>>, TError = AxiosError<ErrorModel>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasks>>, TError, TData>>, axios?: AxiosRequestConfig}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTasksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
 /**
  * @summary Create a task
  */
-export type createTaskResponse = {
-	data: void | ErrorModel;
-	status: number;
-	headers: Headers;
-};
+export const createTask = (
+    createTaskDTO: NonReadonly<CreateTaskDTO>, options?: AxiosRequestConfig
+ ): Promise<AxiosResponse<void>> => {
+    
+    
+    return axios.post(
+      `http://127.0.0.1:8888/v1/api/tasks/create`,
+      createTaskDTO,options
+    );
+  }
 
-export const getCreateTaskUrl = () => {
-	return `http://127.0.0.1:8888/v1/api/tasks/create`;
-};
 
-export const createTask = async (
-	createTaskDTO: NonReadonly<CreateTaskDTO>,
-	options?: RequestInit
-): Promise<createTaskResponse> => {
-	const res = await fetch(getCreateTaskUrl(), {
-		...options,
-		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
-		body: JSON.stringify(createTaskDTO),
-	});
 
-	const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-	const data: createTaskResponse["data"] = body ? JSON.parse(body) : {};
+export const getCreateTaskMutationOptions = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: NonReadonly<CreateTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: NonReadonly<CreateTaskDTO>}, TContext> => {
+    
+const mutationKey = ['createTask'];
+const {mutation: mutationOptions, axios: axiosOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, axios: undefined};
 
-	return { data, status: res.status, headers: res.headers } as createTaskResponse;
-};
+      
 
-export const getCreateTaskMutationOptions = <TError = ErrorModel, TContext = unknown>(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof createTask>>,
-		TError,
-		{ data: NonReadonly<CreateTaskDTO> },
-		TContext
-	>;
-	fetch?: RequestInit;
-}): UseMutationOptions<
-	Awaited<ReturnType<typeof createTask>>,
-	TError,
-	{ data: NonReadonly<CreateTaskDTO> },
-	TContext
-> => {
-	const mutationKey = ["createTask"];
-	const { mutation: mutationOptions, fetch: fetchOptions } = options
-		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-			? options
-			: { ...options, mutation: { ...options.mutation, mutationKey } }
-		: { mutation: { mutationKey }, fetch: undefined };
 
-	const mutationFn: MutationFunction<
-		Awaited<ReturnType<typeof createTask>>,
-		{ data: NonReadonly<CreateTaskDTO> }
-	> = (props) => {
-		const { data } = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTask>>, {data: NonReadonly<CreateTaskDTO>}> = (props) => {
+          const {data} = props ?? {};
 
-		return createTask(data, fetchOptions);
-	};
+          return  createTask(data,axiosOptions)
+        }
 
-	return { mutationFn, ...mutationOptions };
-};
+        
 
-export type CreateTaskMutationResult = NonNullable<Awaited<ReturnType<typeof createTask>>>;
-export type CreateTaskMutationBody = NonReadonly<CreateTaskDTO>;
-export type CreateTaskMutationError = ErrorModel;
 
-/**
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateTaskMutationResult = NonNullable<Awaited<ReturnType<typeof createTask>>>
+    export type CreateTaskMutationBody = NonReadonly<CreateTaskDTO>
+    export type CreateTaskMutationError = AxiosError<ErrorModel>
+
+    /**
  * @summary Create a task
  */
-export const useCreateTask = <TError = ErrorModel, TContext = unknown>(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof createTask>>,
-		TError,
-		{ data: NonReadonly<CreateTaskDTO> },
-		TContext
-	>;
-	fetch?: RequestInit;
-}): UseMutationResult<
-	Awaited<ReturnType<typeof createTask>>,
-	TError,
-	{ data: NonReadonly<CreateTaskDTO> },
-	TContext
-> => {
-	const mutationOptions = getCreateTaskMutationOptions(options);
+export const useCreateTask = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: NonReadonly<CreateTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationResult<
+        Awaited<ReturnType<typeof createTask>>,
+        TError,
+        {data: NonReadonly<CreateTaskDTO>},
+        TContext
+      > => {
 
-	return useMutation(mutationOptions);
-};
+      const mutationOptions = getCreateTaskMutationOptions(options);
 
+      return useMutation(mutationOptions);
+    }
+    
 /**
  * @summary Assign a task to someone
  */
-export type assignTaskResponse = {
-	data: void | ErrorModel;
-	status: number;
-	headers: Headers;
-};
+export const taskAssign = (
+    taskId: string,
+    assignTaskDTO: NonReadonly<AssignTaskDTO>, options?: AxiosRequestConfig
+ ): Promise<AxiosResponse<void>> => {
+    
+    
+    return axios.post(
+      `http://127.0.0.1:8888/v1/api/tasks/${taskId}/assign`,
+      assignTaskDTO,options
+    );
+  }
 
-export const getAssignTaskUrl = (taskId: string) => {
-	return `http://127.0.0.1:8888/v1/api/tasks/${taskId}/assign`;
-};
 
-export const assignTask = async (
-	taskId: string,
-	assignTaskDTO: NonReadonly<AssignTaskDTO>,
-	options?: RequestInit
-): Promise<assignTaskResponse> => {
-	const res = await fetch(getAssignTaskUrl(taskId), {
-		...options,
-		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
-		body: JSON.stringify(assignTaskDTO),
-	});
 
-	const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-	const data: assignTaskResponse["data"] = body ? JSON.parse(body) : {};
+export const getTaskAssignMutationOptions = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskAssign>>, TError,{taskId: string;data: NonReadonly<AssignTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationOptions<Awaited<ReturnType<typeof taskAssign>>, TError,{taskId: string;data: NonReadonly<AssignTaskDTO>}, TContext> => {
+    
+const mutationKey = ['taskAssign'];
+const {mutation: mutationOptions, axios: axiosOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, axios: undefined};
 
-	return { data, status: res.status, headers: res.headers } as assignTaskResponse;
-};
+      
 
-export const getAssignTaskMutationOptions = <TError = ErrorModel, TContext = unknown>(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof assignTask>>,
-		TError,
-		{ taskId: string; data: NonReadonly<AssignTaskDTO> },
-		TContext
-	>;
-	fetch?: RequestInit;
-}): UseMutationOptions<
-	Awaited<ReturnType<typeof assignTask>>,
-	TError,
-	{ taskId: string; data: NonReadonly<AssignTaskDTO> },
-	TContext
-> => {
-	const mutationKey = ["assignTask"];
-	const { mutation: mutationOptions, fetch: fetchOptions } = options
-		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-			? options
-			: { ...options, mutation: { ...options.mutation, mutationKey } }
-		: { mutation: { mutationKey }, fetch: undefined };
 
-	const mutationFn: MutationFunction<
-		Awaited<ReturnType<typeof assignTask>>,
-		{ taskId: string; data: NonReadonly<AssignTaskDTO> }
-	> = (props) => {
-		const { taskId, data } = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof taskAssign>>, {taskId: string;data: NonReadonly<AssignTaskDTO>}> = (props) => {
+          const {taskId,data} = props ?? {};
 
-		return assignTask(taskId, data, fetchOptions);
-	};
+          return  taskAssign(taskId,data,axiosOptions)
+        }
 
-	return { mutationFn, ...mutationOptions };
-};
+        
 
-export type AssignTaskMutationResult = NonNullable<Awaited<ReturnType<typeof assignTask>>>;
-export type AssignTaskMutationBody = NonReadonly<AssignTaskDTO>;
-export type AssignTaskMutationError = ErrorModel;
 
-/**
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TaskAssignMutationResult = NonNullable<Awaited<ReturnType<typeof taskAssign>>>
+    export type TaskAssignMutationBody = NonReadonly<AssignTaskDTO>
+    export type TaskAssignMutationError = AxiosError<ErrorModel>
+
+    /**
  * @summary Assign a task to someone
  */
-export const useAssignTask = <TError = ErrorModel, TContext = unknown>(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof assignTask>>,
-		TError,
-		{ taskId: string; data: NonReadonly<AssignTaskDTO> },
-		TContext
-	>;
-	fetch?: RequestInit;
-}): UseMutationResult<
-	Awaited<ReturnType<typeof assignTask>>,
-	TError,
-	{ taskId: string; data: NonReadonly<AssignTaskDTO> },
-	TContext
-> => {
-	const mutationOptions = getAssignTaskMutationOptions(options);
+export const useTaskAssign = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskAssign>>, TError,{taskId: string;data: NonReadonly<AssignTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationResult<
+        Awaited<ReturnType<typeof taskAssign>>,
+        TError,
+        {taskId: string;data: NonReadonly<AssignTaskDTO>},
+        TContext
+      > => {
 
-	return useMutation(mutationOptions);
-};
+      const mutationOptions = getTaskAssignMutationOptions(options);
 
+      return useMutation(mutationOptions);
+    }
+    
 /**
  * @summary Change task status
  */
-export type changeTaskStatusResponse = {
-	data: void | ErrorModel;
-	status: number;
-	headers: Headers;
-};
+export const taskChangeStatus = (
+    taskId: string,
+    changeTaskStatusDTO: NonReadonly<ChangeTaskStatusDTO>, options?: AxiosRequestConfig
+ ): Promise<AxiosResponse<void>> => {
+    
+    
+    return axios.post(
+      `http://127.0.0.1:8888/v1/api/tasks/${taskId}/status`,
+      changeTaskStatusDTO,options
+    );
+  }
 
-export const getChangeTaskStatusUrl = (taskId: string) => {
-	return `http://127.0.0.1:8888/v1/api/tasks/${taskId}/status`;
-};
 
-export const changeTaskStatus = async (
-	taskId: string,
-	changeTaskStatusDTO: NonReadonly<ChangeTaskStatusDTO>,
-	options?: RequestInit
-): Promise<changeTaskStatusResponse> => {
-	const res = await fetch(getChangeTaskStatusUrl(taskId), {
-		...options,
-		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
-		body: JSON.stringify(changeTaskStatusDTO),
-	});
 
-	const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-	const data: changeTaskStatusResponse["data"] = body ? JSON.parse(body) : {};
+export const getTaskChangeStatusMutationOptions = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskChangeStatus>>, TError,{taskId: string;data: NonReadonly<ChangeTaskStatusDTO>}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationOptions<Awaited<ReturnType<typeof taskChangeStatus>>, TError,{taskId: string;data: NonReadonly<ChangeTaskStatusDTO>}, TContext> => {
+    
+const mutationKey = ['taskChangeStatus'];
+const {mutation: mutationOptions, axios: axiosOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, axios: undefined};
 
-	return { data, status: res.status, headers: res.headers } as changeTaskStatusResponse;
-};
+      
 
-export const getChangeTaskStatusMutationOptions = <
-	TError = ErrorModel,
-	TContext = unknown
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof changeTaskStatus>>,
-		TError,
-		{ taskId: string; data: NonReadonly<ChangeTaskStatusDTO> },
-		TContext
-	>;
-	fetch?: RequestInit;
-}): UseMutationOptions<
-	Awaited<ReturnType<typeof changeTaskStatus>>,
-	TError,
-	{ taskId: string; data: NonReadonly<ChangeTaskStatusDTO> },
-	TContext
-> => {
-	const mutationKey = ["changeTaskStatus"];
-	const { mutation: mutationOptions, fetch: fetchOptions } = options
-		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-			? options
-			: { ...options, mutation: { ...options.mutation, mutationKey } }
-		: { mutation: { mutationKey }, fetch: undefined };
 
-	const mutationFn: MutationFunction<
-		Awaited<ReturnType<typeof changeTaskStatus>>,
-		{ taskId: string; data: NonReadonly<ChangeTaskStatusDTO> }
-	> = (props) => {
-		const { taskId, data } = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof taskChangeStatus>>, {taskId: string;data: NonReadonly<ChangeTaskStatusDTO>}> = (props) => {
+          const {taskId,data} = props ?? {};
 
-		return changeTaskStatus(taskId, data, fetchOptions);
-	};
+          return  taskChangeStatus(taskId,data,axiosOptions)
+        }
 
-	return { mutationFn, ...mutationOptions };
-};
+        
 
-export type ChangeTaskStatusMutationResult = NonNullable<
-	Awaited<ReturnType<typeof changeTaskStatus>>
->;
-export type ChangeTaskStatusMutationBody = NonReadonly<ChangeTaskStatusDTO>;
-export type ChangeTaskStatusMutationError = ErrorModel;
 
-/**
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TaskChangeStatusMutationResult = NonNullable<Awaited<ReturnType<typeof taskChangeStatus>>>
+    export type TaskChangeStatusMutationBody = NonReadonly<ChangeTaskStatusDTO>
+    export type TaskChangeStatusMutationError = AxiosError<ErrorModel>
+
+    /**
  * @summary Change task status
  */
-export const useChangeTaskStatus = <TError = ErrorModel, TContext = unknown>(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof changeTaskStatus>>,
-		TError,
-		{ taskId: string; data: NonReadonly<ChangeTaskStatusDTO> },
-		TContext
-	>;
-	fetch?: RequestInit;
-}): UseMutationResult<
-	Awaited<ReturnType<typeof changeTaskStatus>>,
-	TError,
-	{ taskId: string; data: NonReadonly<ChangeTaskStatusDTO> },
-	TContext
-> => {
-	const mutationOptions = getChangeTaskStatusMutationOptions(options);
+export const useTaskChangeStatus = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskChangeStatus>>, TError,{taskId: string;data: NonReadonly<ChangeTaskStatusDTO>}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationResult<
+        Awaited<ReturnType<typeof taskChangeStatus>>,
+        TError,
+        {taskId: string;data: NonReadonly<ChangeTaskStatusDTO>},
+        TContext
+      > => {
 
-	return useMutation(mutationOptions);
-};
+      const mutationOptions = getTaskChangeStatusMutationOptions(options);
 
+      return useMutation(mutationOptions);
+    }
+    
 /**
  * @summary Unassign a task
  */
-export type unassignTaskResponse = {
-	data: void | ErrorModel;
-	status: number;
-	headers: Headers;
-};
+export const taskUnassign = (
+    taskId: string, options?: AxiosRequestConfig
+ ): Promise<AxiosResponse<void>> => {
+    
+    
+    return axios.post(
+      `http://127.0.0.1:8888/v1/api/tasks/${taskId}/unassign`,undefined,options
+    );
+  }
 
-export const getUnassignTaskUrl = (taskId: string) => {
-	return `http://127.0.0.1:8888/v1/api/tasks/${taskId}/unassign`;
-};
 
-export const unassignTask = async (
-	taskId: string,
-	options?: RequestInit
-): Promise<unassignTaskResponse> => {
-	const res = await fetch(getUnassignTaskUrl(taskId), {
-		...options,
-		method: "POST",
-	});
 
-	const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-	const data: unassignTaskResponse["data"] = body ? JSON.parse(body) : {};
+export const getTaskUnassignMutationOptions = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskUnassign>>, TError,{taskId: string}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationOptions<Awaited<ReturnType<typeof taskUnassign>>, TError,{taskId: string}, TContext> => {
+    
+const mutationKey = ['taskUnassign'];
+const {mutation: mutationOptions, axios: axiosOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, axios: undefined};
 
-	return { data, status: res.status, headers: res.headers } as unassignTaskResponse;
-};
+      
 
-export const getUnassignTaskMutationOptions = <TError = ErrorModel, TContext = unknown>(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof unassignTask>>,
-		TError,
-		{ taskId: string },
-		TContext
-	>;
-	fetch?: RequestInit;
-}): UseMutationOptions<
-	Awaited<ReturnType<typeof unassignTask>>,
-	TError,
-	{ taskId: string },
-	TContext
-> => {
-	const mutationKey = ["unassignTask"];
-	const { mutation: mutationOptions, fetch: fetchOptions } = options
-		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-			? options
-			: { ...options, mutation: { ...options.mutation, mutationKey } }
-		: { mutation: { mutationKey }, fetch: undefined };
 
-	const mutationFn: MutationFunction<
-		Awaited<ReturnType<typeof unassignTask>>,
-		{ taskId: string }
-	> = (props) => {
-		const { taskId } = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof taskUnassign>>, {taskId: string}> = (props) => {
+          const {taskId} = props ?? {};
 
-		return unassignTask(taskId, fetchOptions);
-	};
+          return  taskUnassign(taskId,axiosOptions)
+        }
 
-	return { mutationFn, ...mutationOptions };
-};
+        
 
-export type UnassignTaskMutationResult = NonNullable<Awaited<ReturnType<typeof unassignTask>>>;
 
-export type UnassignTaskMutationError = ErrorModel;
+  return  { mutationFn, ...mutationOptions }}
 
-/**
+    export type TaskUnassignMutationResult = NonNullable<Awaited<ReturnType<typeof taskUnassign>>>
+    
+    export type TaskUnassignMutationError = AxiosError<ErrorModel>
+
+    /**
  * @summary Unassign a task
  */
-export const useUnassignTask = <TError = ErrorModel, TContext = unknown>(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof unassignTask>>,
-		TError,
-		{ taskId: string },
-		TContext
-	>;
-	fetch?: RequestInit;
-}): UseMutationResult<
-	Awaited<ReturnType<typeof unassignTask>>,
-	TError,
-	{ taskId: string },
-	TContext
-> => {
-	const mutationOptions = getUnassignTaskMutationOptions(options);
+export const useTaskUnassign = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskUnassign>>, TError,{taskId: string}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationResult<
+        Awaited<ReturnType<typeof taskUnassign>>,
+        TError,
+        {taskId: string},
+        TContext
+      > => {
 
-	return useMutation(mutationOptions);
-};
+      const mutationOptions = getTaskUnassignMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    

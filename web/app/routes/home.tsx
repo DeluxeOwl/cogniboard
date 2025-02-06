@@ -1,10 +1,8 @@
 import {
-	getGetTasksQueryKey,
-	type getTasksResponse,
-	useChangeTaskStatus,
-	useGetTasks,
+	getTasksQueryKey,
+	useTaskChangeStatus,
+	useTasks,
 } from "@/api/cogniboard";
-import type { GetTasksDTO, Tasks } from "@/api/cogniboard.schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import AddTaskDialog from "./project/add.task";
 import {
@@ -34,13 +32,11 @@ const exampleStatuses = [
 	{ id: "4", name: "completed", color: "#10B981" },
 ];
 
-function getTasks(res: getTasksResponse): GetTasksDTO[] {
-	return (res.data as Tasks).tasks!;
-}
 function useKanbanBoard() {
 	const queryClient = useQueryClient();
-	const { data, isLoading, isError, error } = useGetTasks();
-	const mutation = useChangeTaskStatus();
+
+	const { data, isLoading, isError, error } = useTasks();
+	const mutation = useTaskChangeStatus();
 
 	const handleDragEnd = (event: DragEndEvent) => {
 		const { active, over } = event;
@@ -59,27 +55,8 @@ function useKanbanBoard() {
 		const newStatus = status.name;
 
 		// Get the current query data
-		const queryKey = getGetTasksQueryKey();
+		const queryKey = getTasksQueryKey();
 		const previousTasks = queryClient.getQueryData(queryKey);
-
-		// Optimistically update the task status
-		queryClient.setQueryData(queryKey, (old: getTasksResponse | undefined) => {
-			if (!old) return old;
-			const tasks = getTasks(old);
-			return {
-				...old,
-				data: {
-					tasks: tasks.map((task) =>
-						task.id === taskId
-							? {
-									...task,
-									status: newStatus,
-								}
-							: task,
-					),
-				},
-			};
-		});
 
 		mutation.mutate(
 			{ taskId, data: { status: newStatus } },
@@ -95,10 +72,8 @@ function useKanbanBoard() {
 		);
 	};
 
-	const tasks = data ? getTasks(data) : [];
-
 	return {
-		tasks,
+		tasks: data?.data.tasks,
 		isLoading,
 		isError,
 		error,
@@ -109,20 +84,17 @@ function useKanbanBoard() {
 const Home = () => {
 	const { tasks, isLoading, isError, error, handleDragEnd } = useKanbanBoard();
 
-	if (isLoading) {
+	if (isLoading || !tasks) {
 		return <div>Loading ...</div>;
 	}
 
 	if (isError && error) {
 		return (
 			<div>
-				Error: {error.title} {error.errors?.map((e) => e.message).join(", ")}
+				Error: {error.response?.data.title}{" "}
+				{error.response?.data.errors?.map((e) => e.message).join(", ")}
 			</div>
 		);
-	}
-
-	if (isError) {
-		return <div>An unexpected error occurred</div>;
 	}
 
 	return (

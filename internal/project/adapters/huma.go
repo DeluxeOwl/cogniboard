@@ -28,28 +28,28 @@ func (h *Huma) Register() {
 	}, h.createTask)
 
 	huma.Register(h.api, huma.Operation{
-		OperationID: "get-tasks",
+		OperationID: "tasks",
 		Method:      http.MethodGet,
 		Path:        "/tasks",
 		Summary:     "Get all tasks",
 	}, h.getTasks)
 
 	huma.Register(h.api, huma.Operation{
-		OperationID: "assign-task",
+		OperationID: "task-assign",
 		Method:      http.MethodPost,
 		Path:        "/tasks/{taskId}/assign",
 		Summary:     "Assign a task to someone",
 	}, h.assignTask)
 
 	huma.Register(h.api, huma.Operation{
-		OperationID: "unassign-task",
+		OperationID: "task-unassign",
 		Method:      http.MethodPost,
 		Path:        "/tasks/{taskId}/unassign",
 		Summary:     "Unassign a task",
 	}, h.unassignTask)
 
 	huma.Register(h.api, huma.Operation{
-		OperationID: "change-task-status",
+		OperationID: "task-change-status",
 		Method:      http.MethodPost,
 		Path:        "/tasks/{taskId}/status",
 		Summary:     "Change task status",
