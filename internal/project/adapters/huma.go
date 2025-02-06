@@ -33,6 +33,27 @@ func (h *Huma) Register() {
 		Path:        "/tasks",
 		Summary:     "Get all tasks",
 	}, h.getTasks)
+
+	huma.Register(h.api, huma.Operation{
+		OperationID: "assign-task",
+		Method:      http.MethodPost,
+		Path:        "/tasks/{taskId}/assign",
+		Summary:     "Assign a task to someone",
+	}, h.assignTask)
+
+	huma.Register(h.api, huma.Operation{
+		OperationID: "unassign-task",
+		Method:      http.MethodPost,
+		Path:        "/tasks/{taskId}/unassign",
+		Summary:     "Unassign a task",
+	}, h.unassignTask)
+
+	huma.Register(h.api, huma.Operation{
+		OperationID: "change-task-status",
+		Method:      http.MethodPost,
+		Path:        "/tasks/{taskId}/status",
+		Summary:     "Change task status",
+	}, h.changeTaskStatus)
 }
 
 type CreateTaskDTO struct {
@@ -94,4 +115,58 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body Tas
 	return &struct{ Body Tasks }{
 		Body: Tasks{dtos},
 	}, nil
+}
+
+type AssignTaskDTO struct {
+	AssigneeName string `json:"assignee_name" doc:"Name of the person to assign the task to" minLength:"1"`
+}
+
+func (h *Huma) assignTask(ctx context.Context, input *struct {
+	TaskID string        `path:"taskId"`
+	Body   AssignTaskDTO `json:"body"`
+}) (*struct{}, error) {
+	err := h.app.Commands.AssignTask.Handle(ctx, commands.AssignTask{
+		TaskID:       input.TaskID,
+		AssigneeName: input.Body.AssigneeName,
+	})
+
+	if err != nil {
+		return nil, huma.Error422UnprocessableEntity("couldn't assign task", err)
+	}
+
+	return nil, nil
+}
+
+func (h *Huma) unassignTask(ctx context.Context, input *struct {
+	TaskID string `path:"taskId"`
+}) (*struct{}, error) {
+	err := h.app.Commands.UnassignTask.Handle(ctx, commands.UnassignTask{
+		TaskID: input.TaskID,
+	})
+
+	if err != nil {
+		return nil, huma.Error422UnprocessableEntity("couldn't unassign task", err)
+	}
+
+	return nil, nil
+}
+
+type ChangeTaskStatusDTO struct {
+	Status string `json:"status" doc:"New status for the task" minLength:"1"`
+}
+
+func (h *Huma) changeTaskStatus(ctx context.Context, input *struct {
+	TaskID string              `path:"taskId"`
+	Body   ChangeTaskStatusDTO `json:"body"`
+}) (*struct{}, error) {
+	err := h.app.Commands.ChangeTaskStatus.Handle(ctx, commands.ChangeTaskStatus{
+		TaskID: input.TaskID,
+		Status: input.Body.Status,
+	})
+
+	if err != nil {
+		return nil, huma.Error422UnprocessableEntity("couldn't change task status", err)
+	}
+
+	return nil, nil
 }
