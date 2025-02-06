@@ -170,7 +170,7 @@ func (r *PostgresTaskRepository) AllTasks(ctx context.Context) ([]project.Task, 
 		return nil, fmt.Errorf("select tasks: %w", err)
 	}
 
-	tasks := make([]project.Task, 0, len(dtos))
+	tasks := []project.Task{}
 	for _, dto := range dtos {
 		task, err := dto.toDomain()
 		if err != nil {
