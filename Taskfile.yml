@@ -1,0 +1,41 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install devbox if not already installed
+    cmds:
+      - |
+        if ! command -v devbox &> /dev/null; then
+          curl -fsSL https://get.jetpack.io/devbox | bash
+        fi
+
+  setup:
+    desc: Setup development environment
+    deps: [install]
+    cmds:
+      - devbox shell
+
+  docker:
+    desc: Start Docker services
+    cmds:
+      - docker compose up -d
+
+  run-api:
+    desc: Run the API service
+    env:
+      SERVICE_POSTGRES_DSN: postgres://cogniboard:password@localhost:5432/cogniboard?sslmode=disable
+    cmds:
+      - go run cmd/http/main.go
+
+  gen-hooks:
+    desc: Generate React Query hooks
+    dir: web
+    cmds:
+      - bunx orval
+
+  dev:
+    desc: Start development environment
+    deps: [install]
+    cmds:
+      - task: docker
+      - task: run-api

@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
   "packages": {
-    "go": "latest",
+    "go":      "latest",
     "gofumpt": "latest",
     "darwin.apple_sdk.frameworks.IOKit": {
       "platforms": [
@@ -22,7 +22,8 @@
       "platforms": [
         "aarch64-darwin"
       ]
-    }
+    },
+    "go-task": "3.38.0"
   },
   "shell": {}
 }
