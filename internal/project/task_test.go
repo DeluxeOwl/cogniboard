@@ -18,12 +18,12 @@ func TestNewTask(t *testing.T) {
 
 		task, err := NewTask(id, title, &description, &dueDate, &assigneeName)
 		require.NoError(t, err)
-		assert.Equal(t, id, task.ID())
-		assert.Equal(t, title, task.Title())
-		assert.Equal(t, &description, task.Description())
-		assert.Equal(t, &dueDate, task.DueDate())
-		assert.Equal(t, &assigneeName, task.Asignee())
-		assert.Equal(t, TaskStatusPending, task.Status())
+		assert.Equal(t, id, task.id)
+		assert.Equal(t, title, task.title)
+		assert.Equal(t, &description, task.description)
+		assert.Equal(t, &dueDate, task.dueDate)
+		assert.Equal(t, &assigneeName, task.asigneeName)
+		assert.Equal(t, TaskStatusPending, task.status)
 	})
 
 	t.Run("title too long", func(t *testing.T) {
@@ -56,8 +56,8 @@ func TestTaskChangeStatus(t *testing.T) {
 		task := createValidTask(t)
 		err := task.ChangeStatus(TaskStatusInProgress)
 		require.NoError(t, err)
-		assert.Equal(t, TaskStatusInProgress, task.Status())
-		assert.Nil(t, task.CompletedAt())
+		assert.Equal(t, TaskStatusInProgress, task.status)
+		assert.Nil(t, task.completedAt)
 	})
 
 	t.Run("invalid status", func(t *testing.T) {
@@ -70,8 +70,8 @@ func TestTaskChangeStatus(t *testing.T) {
 		task := createValidTask(t)
 		err := task.ChangeStatus(TaskStatusCompleted)
 		require.NoError(t, err)
-		assert.Equal(t, TaskStatusCompleted, task.Status())
-		assert.NotNil(t, task.CompletedAt())
+		assert.Equal(t, TaskStatusCompleted, task.status)
+		assert.NotNil(t, task.completedAt)
 	})
 
 	t.Run("changing from completed clears completedAt", func(t *testing.T) {
@@ -79,8 +79,8 @@ func TestTaskChangeStatus(t *testing.T) {
 		_ = task.ChangeStatus(TaskStatusCompleted)
 		err := task.ChangeStatus(TaskStatusInProgress)
 		require.NoError(t, err)
-		assert.Equal(t, TaskStatusInProgress, task.Status())
-		assert.Nil(t, task.CompletedAt())
+		assert.Equal(t, TaskStatusInProgress, task.status)
+		assert.Nil(t, task.completedAt)
 	})
 }
 
@@ -96,29 +96,29 @@ func TestTaskEdit(t *testing.T) {
 		err := task.Edit(&newTitle, &newDesc, &newDueDate, &newAssignee, &newStatus)
 		require.NoError(t, err)
 
-		assert.Equal(t, newTitle, task.Title())
-		assert.Equal(t, &newDesc, task.Description())
-		assert.Equal(t, &newDueDate, task.DueDate())
-		assert.Equal(t, &newAssignee, task.Asignee())
-		assert.Equal(t, newStatus, task.Status())
+		assert.Equal(t, newTitle, task.title)
+		assert.Equal(t, &newDesc, task.description)
+		assert.Equal(t, &newDueDate, task.dueDate)
+		assert.Equal(t, &newAssignee, task.asigneeName)
+		assert.Equal(t, newStatus, task.status)
 	})
 
 	t.Run("edit partial fields", func(t *testing.T) {
 		task := createValidTask(t)
-		originalDesc := task.Description()
-		originalDueDate := task.DueDate()
-		originalAssignee := task.Asignee()
-		originalStatus := task.Status()
+		originalDesc := task.description
+		originalDueDate := task.dueDate
+		originalAssignee := task.asigneeName
+		originalStatus := task.status
 
 		newTitle := "Updated Title"
 		err := task.Edit(&newTitle, nil, nil, nil, nil)
 		require.NoError(t, err)
 
-		assert.Equal(t, newTitle, task.Title())
-		assert.Equal(t, originalDesc, task.Description())
-		assert.Equal(t, originalDueDate, task.DueDate())
-		assert.Equal(t, originalAssignee, task.Asignee())
-		assert.Equal(t, originalStatus, task.Status())
+		assert.Equal(t, newTitle, task.title)
+		assert.Equal(t, originalDesc, task.description)
+		assert.Equal(t, originalDueDate, task.dueDate)
+		assert.Equal(t, originalAssignee, task.asigneeName)
+		assert.Equal(t, originalStatus, task.status)
 	})
 
 	t.Run("edit with invalid title", func(t *testing.T) {

@@ -79,17 +79,7 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body pro
 
 	dtos := make([]project.InTaskDTO, len(tasks))
 	for i, task := range tasks {
-		dtos[i] = project.InTaskDTO{
-			ID:          string(task.ID()),
-			Title:       task.Title(),
-			Description: task.Description(),
-			DueDate:     task.DueDate(),
-			Assignee:    task.Asignee(),
-			CreatedAt:   task.CreatedAt(),
-			CompletedAt: task.CompletedAt(),
-			UpdatedAt:   task.UpdatedAt(),
-			Status:      string(task.Status()),
-		}
+		dtos[i] = project.ToInTaskDTO(&task)
 	}
 
 	return &struct{ Body project.InTasksDTO }{

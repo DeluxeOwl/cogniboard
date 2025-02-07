@@ -185,27 +185,3 @@ func (t *Task) CompletedAt() *time.Time {
 func (t *Task) Status() TaskStatus {
 	return t.status
 }
-
-func UnmarshalTaskFromDB(
-	id TaskID,
-	title string,
-	description *string,
-	dueDate *time.Time,
-	assigneeName *string,
-	createdAt time.Time,
-	updatedAt time.Time,
-	completedAt *time.Time,
-	status TaskStatus,
-) (*Task, error) {
-	task, err := NewTask(id, title, description, dueDate, assigneeName)
-	if err != nil {
-		return nil, err
-	}
-
-	task.createdAt = createdAt
-	task.updatedAt = updatedAt
-	task.completedAt = completedAt
-	task.status = status
-
-	return task, nil
-}

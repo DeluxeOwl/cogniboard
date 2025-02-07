@@ -12,6 +12,10 @@ type InCreateTaskDTO struct {
 	AssigneeName *string    `json:"assignee_name,omitempty" doc:"Task's asignee (if any)"`
 }
 
+type InTasksDTO struct {
+	Tasks []InTaskDTO `json:"tasks"`
+}
+
 type InTaskDTO struct {
 	ID          string     `json:"id"`
 	Title       string     `json:"title"`
@@ -24,8 +28,18 @@ type InTaskDTO struct {
 	Status      string     `json:"status"`
 }
 
-type InTasksDTO struct {
-	Tasks []InTaskDTO `json:"tasks"`
+func ToInTaskDTO(task *Task) InTaskDTO {
+	return InTaskDTO{
+		ID:          string(task.id),
+		Title:       task.title,
+		Description: task.description,
+		DueDate:     task.dueDate,
+		Assignee:    task.asigneeName,
+		CreatedAt:   task.createdAt,
+		CompletedAt: task.completedAt,
+		UpdatedAt:   task.updatedAt,
+		Status:      string(task.status),
+	}
 }
 
 type InEditTaskDTO struct {
