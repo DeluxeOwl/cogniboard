@@ -13,22 +13,59 @@ import {
 } from "./project/kanban";
 import type { DragEndEvent } from "./project/kanban.ts";
 
-const Home = () => {
+function useHome() {
 	const [selectedTask, setSelectedTask] = useState<TaskDTO | null>(null);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const { tasks, isLoading, isError, error, handleDragEnd } = useKanbanBoard();
 
-	if (isLoading || !tasks) {
+	const isLoadingOrNoTasks = isLoading || !tasks;
+	const hasError = isError && error;
+	const errorMessage = hasError
+		? `${error.response?.data.title} ${error.response?.data.errors
+				?.map((e) => e.message)
+				.join(", ")}`
+		: "";
+
+	const handleTaskSelect = (task: TaskDTO) => {
+		setSelectedTask(task);
+		setEditDialogOpen(true);
+	};
+
+	// Ensure tasks is always an array
+	const safeTasks = tasks ?? [];
+
+	return {
+		tasks: safeTasks,
+		selectedTask,
+		editDialogOpen,
+		isLoadingOrNoTasks,
+		hasError,
+		errorMessage,
+		handleDragEnd,
+		handleTaskSelect,
+		setEditDialogOpen,
+	};
+}
+
+const Home = () => {
+	const {
+		tasks,
+		selectedTask,
+		editDialogOpen,
+		isLoadingOrNoTasks,
+		hasError,
+		errorMessage,
+		handleDragEnd,
+		handleTaskSelect,
+		setEditDialogOpen,
+	} = useHome();
+
+	if (isLoadingOrNoTasks) {
 		return <div>Loading ...</div>;
 	}
 
-	if (isError && error) {
-		return (
-			<div>
-				Error: {error.response?.data.title}{" "}
-				{error.response?.data.errors?.map((e) => e.message).join(", ")}
-			</div>
-		);
+	if (hasError) {
+		return <div>Error: {errorMessage}</div>;
 	}
 
 	return (
@@ -66,10 +103,7 @@ const Home = () => {
 										name={feature.title}
 										parent={status.name}
 										index={index}
-										onClick={() => {
-											setSelectedTask(feature);
-											setEditDialogOpen(true);
-										}}
+										onClick={() => handleTaskSelect(feature)}
 									>
 										<div className="flex items-start justify-between gap-2">
 											<div className="flex flex-col gap-1">

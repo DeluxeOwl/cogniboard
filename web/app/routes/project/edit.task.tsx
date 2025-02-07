@@ -152,7 +152,8 @@ export function useEditTask({ task, onSuccess }: UseEditTaskProps) {
 	const queryClient = useQueryClient();
 	const form = useForm<FormData>({
 		resolver: zodResolver(taskEditBody),
-		defaultValues: {
+		// Using values here keeps the form in sync with the props
+		values: {
 			title: task.title,
 			description: task.description || "",
 		},
