@@ -83,6 +83,38 @@ func NewTask(id TaskID, title string, description *string, dueDate *time.Time, a
 	return task, nil
 }
 
+func (t *Task) Edit(title *string, description *string, dueDate *time.Time, assigneeName *string, status *TaskStatus) error {
+	if title != nil {
+		if len(*title) > MaxTitleLength {
+			return ErrTitleTooLong
+		}
+		t.title = *title
+	}
+
+	if dueDate != nil {
+		if dueDate.Before(time.Now()) {
+			return ErrDueDateInPast
+		}
+		t.dueDate = dueDate
+	}
+
+	if description != nil {
+		t.description = description
+	}
+
+	if assigneeName != nil {
+		t.asigneeName = assigneeName
+	}
+
+	if status != nil {
+		if err := t.ChangeStatus(*status); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (t *Task) ChangeStatus(status TaskStatus) error {
 	if !validTaskStatuses[status] {
 		return fmt.Errorf("%w: %s", ErrInvalidStatus, status)
@@ -95,18 +127,6 @@ func (t *Task) ChangeStatus(status TaskStatus) error {
 	}
 	t.status = status
 	return nil
-}
-
-func (t *Task) AssignTo(memberName *string) error {
-	if memberName == nil {
-		return errors.New("user name cannot be nil")
-	}
-	t.asigneeName = memberName
-	return nil
-}
-
-func (t *Task) Unassign() {
-	t.asigneeName = nil
 }
 
 func (t *Task) ID() TaskID {

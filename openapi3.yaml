@@ -1,21 +1,5 @@
 components:
   schemas:
-    AssignTaskDTO:
-      additionalProperties: false
-      properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/AssignTaskDTO.json
-          format: uri
-          readOnly: true
-          type: string
-        assignee_name:
-          description: Name of the person to assign the task to
-          minLength: 1
-          type: string
-      required:
-        - assignee_name
-      type: object
     ChangeTaskStatusDTO:
       additionalProperties: false
       properties:
@@ -58,6 +42,33 @@ components:
           type: string
       required:
         - title
+      type: object
+    EditTaskDTO:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: http://127.0.0.1:8888/v1/api/schemas/EditTaskDTO.json
+          format: uri
+          readOnly: true
+          type: string
+        assignee_name:
+          description: Name of the person to assign the task to
+          type: string
+        description:
+          description: Task's description
+          type: string
+        due_date:
+          description: Task's due date
+          format: date-time
+          type: string
+        status:
+          description: Task's status
+          type: string
+        title:
+          description: Task's title
+          maxLength: 50
+          type: string
       type: object
     ErrorDetail:
       additionalProperties: false
@@ -205,9 +216,9 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       summary: Create a task
-  /tasks/{taskId}/assign:
+  /tasks/{taskId}/edit:
     post:
-      operationId: task-assign
+      operationId: task-edit
       parameters:
         - in: path
           name: taskId
@@ -218,7 +229,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AssignTaskDTO"
+              $ref: "#/components/schemas/EditTaskDTO"
         required: true
       responses:
         "204":
@@ -229,7 +240,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
-      summary: Assign a task to someone
+      summary: Edit a task
   /tasks/{taskId}/status:
     post:
       operationId: task-change-status
@@ -255,24 +266,5 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       summary: Change task status
-  /tasks/{taskId}/unassign:
-    post:
-      operationId: task-unassign
-      parameters:
-        - in: path
-          name: taskId
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: No Content
-        default:
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ErrorModel"
-          description: Error
-      summary: Unassign a task
 servers:
   - url: http://127.0.0.1:8888/v1/api

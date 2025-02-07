@@ -37,18 +37,11 @@ func (h *Huma) Register() {
 	}, h.getTasks)
 
 	huma.Register(h.api, huma.Operation{
-		OperationID: "task-assign",
+		OperationID: "task-edit",
 		Method:      http.MethodPost,
-		Path:        "/tasks/{taskId}/assign",
-		Summary:     "Assign a task to someone",
-	}, h.assignTask)
-
-	huma.Register(h.api, huma.Operation{
-		OperationID: "task-unassign",
-		Method:      http.MethodPost,
-		Path:        "/tasks/{taskId}/unassign",
-		Summary:     "Unassign a task",
-	}, h.unassignTask)
+		Path:        "/tasks/{taskId}/edit",
+		Summary:     "Edit a task",
+	}, h.editTask)
 
 	huma.Register(h.api, huma.Operation{
 		OperationID: "task-change-status",
@@ -102,23 +95,17 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body Tas
 	}, nil
 }
 
-func (h *Huma) assignTask(ctx context.Context, input *struct {
-	TaskID string        `path:"taskId"`
-	Body   AssignTaskDTO `json:"body"`
+func (h *Huma) editTask(ctx context.Context, input *struct {
+	TaskID string      `path:"taskId"`
+	Body   EditTaskDTO `json:"body"`
 }) (*struct{}, error) {
-	err := h.app.Commands.AssignTask.Handle(ctx, commands.AssignTask{
+	err := h.app.Commands.EditTask.Handle(ctx, commands.EditTask{
 		TaskID:       input.TaskID,
+		Title:        input.Body.Title,
+		Description:  input.Body.Description,
+		DueDate:      input.Body.DueDate,
 		AssigneeName: input.Body.AssigneeName,
-	})
-
-	return nil, handleError(err)
-}
-
-func (h *Huma) unassignTask(ctx context.Context, input *struct {
-	TaskID string `path:"taskId"`
-}) (*struct{}, error) {
-	err := h.app.Commands.UnassignTask.Handle(ctx, commands.UnassignTask{
-		TaskID: input.TaskID,
+		Status:       input.Body.Status,
 	})
 
 	return nil, handleError(err)

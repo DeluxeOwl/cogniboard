@@ -27,9 +27,13 @@ type TasksDTO struct {
 	Tasks []TaskDTO `json:"tasks"`
 }
 
-// AssignTaskDTO represents the input for assigning a task
-type AssignTaskDTO struct {
-	AssigneeName string `json:"assignee_name" doc:"Name of the person to assign the task to" minLength:"1"`
+// EditTaskDTO represents the input for editing a task
+type EditTaskDTO struct {
+	Title        *string    `json:"title,omitempty" doc:"Task's title" maxLength:"50"`
+	Description  *string    `json:"description,omitempty" doc:"Task's description"`
+	DueDate      *time.Time `json:"due_date,omitempty" doc:"Task's due date" format:"date-time"`
+	AssigneeName *string    `json:"assignee_name,omitempty" doc:"Name of the person to assign the task to"`
+	Status       *string    `json:"status,omitempty" doc:"Task's status"`
 }
 
 // ChangeTaskStatusDTO represents the input for changing a task's status

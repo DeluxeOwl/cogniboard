@@ -54,16 +54,6 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
     : T[P];
 } : DistributeReadOnlyOverUnions<T>;
 
-export interface AssignTaskDTO {
-  /** A URL to the JSON Schema for this object. */
-  readonly $schema?: string;
-  /**
-   * Name of the person to assign the task to
-   * @minLength 1
-   */
-  assignee_name: string;
-}
-
 export interface ChangeTaskStatusDTO {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -89,6 +79,24 @@ export interface CreateTaskDTO {
    * @maxLength 50
    */
   title: string;
+}
+
+export interface EditTaskDTO {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Name of the person to assign the task to */
+  assignee_name?: string;
+  /** Task's description */
+  description?: string;
+  /** Task's due date */
+  due_date?: string;
+  /** Task's status */
+  status?: string;
+  /**
+   * Task's title
+   * @maxLength 50
+   */
+  title?: string;
 }
 
 export interface ErrorDetail {
@@ -295,27 +303,27 @@ export const useTaskCreate = <TError = AxiosError<ErrorModel>,
     }
     
 /**
- * @summary Assign a task to someone
+ * @summary Edit a task
  */
-export const taskAssign = (
+export const taskEdit = (
     taskId: string,
-    assignTaskDTO: NonReadonly<AssignTaskDTO>, options?: AxiosRequestConfig
+    editTaskDTO: NonReadonly<EditTaskDTO>, options?: AxiosRequestConfig
  ): Promise<AxiosResponse<void>> => {
     
     
     return axios.post(
-      `http://127.0.0.1:8888/v1/api/tasks/${taskId}/assign`,
-      assignTaskDTO,options
+      `http://127.0.0.1:8888/v1/api/tasks/${taskId}/edit`,
+      editTaskDTO,options
     );
   }
 
 
 
-export const getTaskAssignMutationOptions = <TError = AxiosError<ErrorModel>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskAssign>>, TError,{taskId: string;data: NonReadonly<AssignTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
-): UseMutationOptions<Awaited<ReturnType<typeof taskAssign>>, TError,{taskId: string;data: NonReadonly<AssignTaskDTO>}, TContext> => {
+export const getTaskEditMutationOptions = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskEdit>>, TError,{taskId: string;data: NonReadonly<EditTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
+): UseMutationOptions<Awaited<ReturnType<typeof taskEdit>>, TError,{taskId: string;data: NonReadonly<EditTaskDTO>}, TContext> => {
     
-const mutationKey = ['taskAssign'];
+const mutationKey = ['taskEdit'];
 const {mutation: mutationOptions, axios: axiosOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -325,10 +333,10 @@ const {mutation: mutationOptions, axios: axiosOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof taskAssign>>, {taskId: string;data: NonReadonly<AssignTaskDTO>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof taskEdit>>, {taskId: string;data: NonReadonly<EditTaskDTO>}> = (props) => {
           const {taskId,data} = props ?? {};
 
-          return  taskAssign(taskId,data,axiosOptions)
+          return  taskEdit(taskId,data,axiosOptions)
         }
 
         
@@ -336,23 +344,23 @@ const {mutation: mutationOptions, axios: axiosOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type TaskAssignMutationResult = NonNullable<Awaited<ReturnType<typeof taskAssign>>>
-    export type TaskAssignMutationBody = NonReadonly<AssignTaskDTO>
-    export type TaskAssignMutationError = AxiosError<ErrorModel>
+    export type TaskEditMutationResult = NonNullable<Awaited<ReturnType<typeof taskEdit>>>
+    export type TaskEditMutationBody = NonReadonly<EditTaskDTO>
+    export type TaskEditMutationError = AxiosError<ErrorModel>
 
     /**
- * @summary Assign a task to someone
+ * @summary Edit a task
  */
-export const useTaskAssign = <TError = AxiosError<ErrorModel>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskAssign>>, TError,{taskId: string;data: NonReadonly<AssignTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
+export const useTaskEdit = <TError = AxiosError<ErrorModel>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskEdit>>, TError,{taskId: string;data: NonReadonly<EditTaskDTO>}, TContext>, axios?: AxiosRequestConfig}
 ): UseMutationResult<
-        Awaited<ReturnType<typeof taskAssign>>,
+        Awaited<ReturnType<typeof taskEdit>>,
         TError,
-        {taskId: string;data: NonReadonly<AssignTaskDTO>},
+        {taskId: string;data: NonReadonly<EditTaskDTO>},
         TContext
       > => {
 
-      const mutationOptions = getTaskAssignMutationOptions(options);
+      const mutationOptions = getTaskEditMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -416,67 +424,6 @@ export const useTaskChangeStatus = <TError = AxiosError<ErrorModel>,
       > => {
 
       const mutationOptions = getTaskChangeStatusMutationOptions(options);
-
-      return useMutation(mutationOptions);
-    }
-    
-/**
- * @summary Unassign a task
- */
-export const taskUnassign = (
-    taskId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<void>> => {
-    
-    
-    return axios.post(
-      `http://127.0.0.1:8888/v1/api/tasks/${taskId}/unassign`,undefined,options
-    );
-  }
-
-
-
-export const getTaskUnassignMutationOptions = <TError = AxiosError<ErrorModel>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskUnassign>>, TError,{taskId: string}, TContext>, axios?: AxiosRequestConfig}
-): UseMutationOptions<Awaited<ReturnType<typeof taskUnassign>>, TError,{taskId: string}, TContext> => {
-    
-const mutationKey = ['taskUnassign'];
-const {mutation: mutationOptions, axios: axiosOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, axios: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof taskUnassign>>, {taskId: string}> = (props) => {
-          const {taskId} = props ?? {};
-
-          return  taskUnassign(taskId,axiosOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type TaskUnassignMutationResult = NonNullable<Awaited<ReturnType<typeof taskUnassign>>>
-    
-    export type TaskUnassignMutationError = AxiosError<ErrorModel>
-
-    /**
- * @summary Unassign a task
- */
-export const useTaskUnassign = <TError = AxiosError<ErrorModel>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof taskUnassign>>, TError,{taskId: string}, TContext>, axios?: AxiosRequestConfig}
-): UseMutationResult<
-        Awaited<ReturnType<typeof taskUnassign>>,
-        TError,
-        {taskId: string},
-        TContext
-      > => {
-
-      const mutationOptions = getTaskUnassignMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

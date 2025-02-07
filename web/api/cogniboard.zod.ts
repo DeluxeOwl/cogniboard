@@ -41,14 +41,21 @@ export const taskCreateBody = zod.object({
 
 
 /**
- * @summary Assign a task to someone
+ * @summary Edit a task
  */
-export const taskAssignParams = zod.object({
+export const taskEditParams = zod.object({
   "taskId": zod.string()
 })
 
-export const taskAssignBody = zod.object({
-  "assignee_name": zod.string().min(1)
+export const taskEditBodyTitleMax = 50;
+
+
+export const taskEditBody = zod.object({
+  "assignee_name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "due_date": zod.string().datetime().optional(),
+  "status": zod.string().optional(),
+  "title": zod.string().max(taskEditBodyTitleMax).optional()
 })
 
 
@@ -61,14 +68,6 @@ export const taskChangeStatusParams = zod.object({
 
 export const taskChangeStatusBody = zod.object({
   "status": zod.string().min(1)
-})
-
-
-/**
- * @summary Unassign a task
- */
-export const taskUnassignParams = zod.object({
-  "taskId": zod.string()
 })
 
 

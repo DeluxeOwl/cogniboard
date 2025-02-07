@@ -17,8 +17,7 @@ type Application struct {
 type Commands struct {
 	CreateTask       commands.CreateTaskHandler
 	ChangeTaskStatus commands.ChangeTaskStatusHandler
-	AssignTask       commands.AssignTaskHandler
-	UnassignTask     commands.UnassignTaskHandler
+	EditTask         commands.EditTaskHandler
 }
 
 type Queries struct {
@@ -38,8 +37,7 @@ func New(repo project.TaskRepository, logger *slog.Logger) (*Application, error)
 		Commands: Commands{
 			CreateTask:       commands.NewCreateTaskHandler(repo, logger),
 			ChangeTaskStatus: commands.NewChangeStatusHandler(repo, logger),
-			AssignTask:       commands.NewAssignTaskHandler(repo, logger),
-			UnassignTask:     commands.NewUnassignTaskHandler(repo, logger),
+			EditTask:         commands.NewEditTaskHandler(repo, logger),
 		},
 		Queries: Queries{
 			AllTasks: queries.NewAllTasksHandler(repo, logger),
