@@ -20,7 +20,12 @@ tasks:
     cmds:
       - docker compose up -d
 
-  run-api:
+  docker-down:
+    desc: Stop docker services
+    cmds:
+      - docker compose down
+
+  server:
     desc: Run the API service
     cmds:
       - go run cmd/http/main.go

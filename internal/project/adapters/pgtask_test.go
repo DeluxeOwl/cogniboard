@@ -2,182 +2,285 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/DeluxeOwl/cogniboard/internal/postgres"
 	"github.com/DeluxeOwl/cogniboard/internal/project"
-	"github.com/stretchr/testify/assert"
+	"github.com/docker/go-connections/nat"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func TestPGTaskRepository(t *testing.T) {
-	t.Run("create and get task", func(t *testing.T) {
-		repo := setupTestRepo(t)
-		ctx := context.Background()
+type pgTestCreds struct {
+	db   string
+	user string
+	pass string
+}
 
+func (creds *pgTestCreds) DSN(endpoint string) string {
+	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
+		creds.user,
+		creds.pass,
+		endpoint,
+		creds.db,
+	)
+}
+
+var (
+	pgImage = "postgres:17-alpine"
+	pgPort  = "5432/tcp"
+	pgCreds = pgTestCreds{
+		db:   "cogniboard",
+		user: "cogniboard",
+		pass: "password",
+	}
+)
+
+func setupPostgresRepo(ctx context.Context, t *testing.T) (repo *PostgresTaskRepository, cleanup func()) {
+
+	req := testcontainers.ContainerRequest{
+		Image:        pgImage,
+		ExposedPorts: []string{pgPort},
+		WaitingFor:   wait.ForListeningPort(nat.Port(pgPort)),
+		Env: map[string]string{
+			"POSTGRES_DB":       pgCreds.db,
+			"POSTGRES_USER":     pgCreds.user,
+			"POSTGRES_PASSWORD": pgCreds.pass,
+		},
+	}
+	postgresContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	require.NoError(t, err)
+
+	endpoint, err := postgresContainer.Endpoint(ctx, "")
+	require.NoError(t, err)
+
+	db, err := postgres.NewPostgresWithMigrate(pgCreds.DSN(endpoint))
+	require.NoError(t, err)
+	require.NotNil(t, db)
+
+	repo, err = NewPostgresTaskRepository(db)
+	require.NoError(t, err)
+
+	return repo, func() {
+		testcontainers.CleanupContainer(t, postgresContainer)
+	}
+}
+
+func createTaskWithID(t *testing.T, title string, description *string, dueDate *time.Time, assigneeName *string) (task *project.Task) {
+	taskID, err := project.NewTaskID()
+	require.NoError(t, err)
+
+	task, err = project.NewTask(taskID, title, description, dueDate, assigneeName)
+	require.NoError(t, err)
+
+	return task
+}
+
+func Test_RepoCreate(t *testing.T) {
+	ctx := context.Background()
+	repo, cleanup := setupPostgresRepo(ctx, t)
+	defer cleanup()
+
+	task := createTaskWithID(t, "some new task", nil, nil, nil)
+
+	err := repo.Create(ctx, task)
+	require.NoError(t, err)
+
+	taskFromDB, err := repo.GetByID(ctx, task.ID())
+	require.NoError(t, err)
+
+	require.Equal(t, taskFromDB.ID(), task.ID())
+}
+
+func Test_RepoGetByID(t *testing.T) {
+	ctx := context.Background()
+	repo, cleanup := setupPostgresRepo(ctx, t)
+	defer cleanup()
+
+	t.Run("returns error when task does not exist", func(t *testing.T) {
 		taskID, err := project.NewTaskID()
 		require.NoError(t, err)
 
-		title := "Test Task"
-		description := "Test Description"
-		dueDate := time.Now().Add(24 * time.Hour)
-		assigneeName := "John Doe"
-
-		task, err := project.NewTask(taskID, title, &description, &dueDate, &assigneeName)
-		require.NoError(t, err)
-
-		err = repo.Create(ctx, task)
-		require.NoError(t, err)
-
-		fetchedTask, err := repo.GetByID(ctx, taskID)
-		require.NoError(t, err)
-
-		assert.Equal(t, task.ID(), fetchedTask.ID())
-		assert.Equal(t, task.Title(), fetchedTask.Title())
-		assert.Equal(t, task.Description(), fetchedTask.Description())
-		assert.Equal(t, task.DueDate().Unix(), fetchedTask.DueDate().Unix())
-		assert.Equal(t, task.Asignee(), fetchedTask.Asignee())
-		assert.Equal(t, task.Status(), fetchedTask.Status())
-		assert.Equal(t, task.CreatedAt().Unix(), fetchedTask.CreatedAt().Unix())
+		task, err := repo.GetByID(ctx, taskID)
+		require.Error(t, err)
+		require.Nil(t, task)
+		require.Contains(t, err.Error(), "task not found")
 	})
 
-	t.Run("update task", func(t *testing.T) {
-		repo := setupTestRepo(t)
-		ctx := context.Background()
+	t.Run("successfully retrieves existing task with all fields", func(t *testing.T) {
+		description := "test description"
+		dueDate := time.Now().Add(24 * time.Hour)
+		assigneeName := "john"
+		task := createTaskWithID(t, "test task", &description, &dueDate, &assigneeName)
 
+		err := repo.Create(ctx, task)
+		require.NoError(t, err)
+
+		taskFromDB, err := repo.GetByID(ctx, task.ID())
+		require.NoError(t, err)
+		require.NotNil(t, taskFromDB)
+
+		require.Equal(t, task.ID(), taskFromDB.ID())
+		require.Equal(t, task.Title(), taskFromDB.Title())
+		require.Equal(t, task.Description(), taskFromDB.Description())
+		require.Equal(t, task.DueDate().UTC(), taskFromDB.DueDate().UTC())
+		require.Equal(t, task.Asignee(), taskFromDB.Asignee())
+		require.Equal(t, task.Status(), taskFromDB.Status())
+		require.Equal(t, task.CreatedAt().UTC(), taskFromDB.CreatedAt().UTC())
+		require.Equal(t, task.CompletedAt(), taskFromDB.CompletedAt())
+		require.Equal(t, task.UpdatedAt().UTC(), taskFromDB.UpdatedAt().UTC())
+	})
+}
+
+func Test_RepoUpdateTask(t *testing.T) {
+	ctx := context.Background()
+	repo, cleanup := setupPostgresRepo(ctx, t)
+	defer cleanup()
+
+	t.Run("returns error when task does not exist", func(t *testing.T) {
 		taskID, err := project.NewTaskID()
 		require.NoError(t, err)
 
-		title := "Test Task"
-		description := "Test Description"
-		dueDate := time.Now().Add(24 * time.Hour)
-		assigneeName := "John Doe"
-
-		task, err := project.NewTask(taskID, title, &description, &dueDate, &assigneeName)
-		require.NoError(t, err)
-
-		err = repo.Create(ctx, task)
-		require.NoError(t, err)
-
-		newTitle := "Updated Task"
-		newDesc := "Updated Description"
-		newDueDate := time.Now().Add(48 * time.Hour)
-		newAssignee := "Jane Doe"
-		newStatus := project.TaskStatusInProgress
-
 		err = repo.UpdateTask(ctx, taskID, func(t *project.Task) (*project.Task, error) {
-			return t, t.Edit(&newTitle, &newDesc, &newDueDate, &newAssignee, &newStatus)
+			return t, nil
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "task not found")
+	})
+
+	t.Run("successfully updates task status", func(t *testing.T) {
+		task := createTaskWithID(t, "test task", nil, nil, nil)
+		err := repo.Create(ctx, task)
+		require.NoError(t, err)
+
+		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+			err := t.ChangeStatus(project.TaskStatusCompleted)
+			if err != nil {
+				return nil, err
+			}
+			return t, nil
 		})
 		require.NoError(t, err)
 
-		updatedTask, err := repo.GetByID(ctx, taskID)
+		updatedTask, err := repo.GetByID(ctx, task.ID())
 		require.NoError(t, err)
-
-		assert.Equal(t, newTitle, updatedTask.Title())
-		assert.Equal(t, &newDesc, updatedTask.Description())
-		assert.Equal(t, newDueDate.Unix(), updatedTask.DueDate().Unix())
-		assert.Equal(t, &newAssignee, updatedTask.Asignee())
-		assert.Equal(t, newStatus, updatedTask.Status())
+		require.Equal(t, project.TaskStatusCompleted, updatedTask.Status())
+		require.NotNil(t, updatedTask.CompletedAt())
 	})
 
-	t.Run("get all tasks", func(t *testing.T) {
-		repo := setupTestRepo(t)
-		ctx := context.Background()
-
-		// Create first task
-		taskID1, err := project.NewTaskID()
-		require.NoError(t, err)
-		title1 := "Test Task 1"
-		description1 := "Test Description 1"
-		dueDate1 := time.Now().Add(24 * time.Hour)
-		assigneeName1 := "John Doe"
-
-		task1, err := project.NewTask(taskID1, title1, &description1, &dueDate1, &assigneeName1)
-		require.NoError(t, err)
-		err = repo.Create(ctx, task1)
+	t.Run("rolls back transaction on update function error", func(t *testing.T) {
+		task := createTaskWithID(t, "test task", nil, nil, nil)
+		err := repo.Create(ctx, task)
 		require.NoError(t, err)
 
-		// Create second task
-		taskID2, err := project.NewTaskID()
-		require.NoError(t, err)
-		title2 := "Test Task 2"
-		description2 := "Test Description 2"
-		dueDate2 := time.Now().Add(48 * time.Hour)
-		assigneeName2 := "Jane Doe"
+		expectedError := fmt.Errorf("update error")
+		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+			err := t.ChangeStatus(project.TaskStatusCompleted)
+			if err != nil {
+				return nil, err
+			}
+			return t, expectedError
+		})
+		require.ErrorIs(t, err, expectedError)
 
-		task2, err := project.NewTask(taskID2, title2, &description2, &dueDate2, &assigneeName2)
+		unchangedTask, err := repo.GetByID(ctx, task.ID())
 		require.NoError(t, err)
-		err = repo.Create(ctx, task2)
-		require.NoError(t, err)
-
-		// Get all tasks
-		tasks, err := repo.AllTasks(ctx)
-		require.NoError(t, err)
-		assert.Len(t, tasks, 2)
-
-		// Verify tasks are returned in the correct order and with correct data
-		assert.Equal(t, taskID1, tasks[0].ID())
-		assert.Equal(t, title1, tasks[0].Title())
-		assert.Equal(t, &description1, tasks[0].Description())
-		assert.Equal(t, dueDate1.Unix(), tasks[0].DueDate().Unix())
-		assert.Equal(t, &assigneeName1, tasks[0].Asignee())
-
-		assert.Equal(t, taskID2, tasks[1].ID())
-		assert.Equal(t, title2, tasks[1].Title())
-		assert.Equal(t, &description2, tasks[1].Description())
-		assert.Equal(t, dueDate2.Unix(), tasks[1].DueDate().Unix())
-		assert.Equal(t, &assigneeName2, tasks[1].Asignee())
+		require.Equal(t, project.TaskStatusPending, unchangedTask.Status())
+		require.Nil(t, unchangedTask.CompletedAt())
 	})
-}
 
-func setupTestRepo(t *testing.T) project.TaskRepository {
-	// Mock implementation for testing
-	return NewInMemoryTaskRepository()
-}
+	t.Run("successfully updates task fields and sets updated_at", func(t *testing.T) {
+		description := "initial description"
+		dueDate := time.Now().Add(24 * time.Hour)
+		assignee := "initial assignee"
+		task := createTaskWithID(t, "initial title", &description, &dueDate, &assignee)
 
-// InMemoryTaskRepository is a simple in-memory implementation for testing
-type InMemoryTaskRepository struct {
-	tasks map[project.TaskID]*project.Task
-}
+		err := repo.Create(ctx, task)
+		require.NoError(t, err)
 
-func NewInMemoryTaskRepository() *InMemoryTaskRepository {
-	return &InMemoryTaskRepository{
-		tasks: make(map[project.TaskID]*project.Task),
-	}
-}
+		// Store initial timestamps for comparison
+		initialCreatedAt := task.CreatedAt()
+		initialUpdatedAt := task.UpdatedAt()
 
-func (r *InMemoryTaskRepository) Create(ctx context.Context, task *project.Task) error {
-	r.tasks[task.ID()] = task
-	return nil
-}
+		// Wait a moment to ensure updated_at will be different
+		time.Sleep(time.Millisecond * 10)
 
-func (r *InMemoryTaskRepository) GetByID(ctx context.Context, id project.TaskID) (*project.Task, error) {
-	task, ok := r.tasks[id]
-	if !ok {
-		return nil, nil
-	}
-	return task, nil
-}
+		newTitle := "updated title"
+		newDescription := "updated description"
+		newDueDate := time.Now().Add(48 * time.Hour)
+		newAssignee := "updated assignee"
 
-func (r *InMemoryTaskRepository) UpdateTask(ctx context.Context, id project.TaskID, updateFn func(t *project.Task) (*project.Task, error)) error {
-	task, ok := r.tasks[id]
-	if !ok {
-		return nil
-	}
+		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+			newStatus := project.TaskStatusInProgress
+			err := t.Edit(&newTitle, &newDescription, &newDueDate, &newAssignee, &newStatus)
+			if err != nil {
+				return nil, err
+			}
+			return t, nil
+		})
+		require.NoError(t, err)
 
-	updatedTask, err := updateFn(task)
-	if err != nil {
-		return err
-	}
+		updatedTask, err := repo.GetByID(ctx, task.ID())
+		require.NoError(t, err)
 
-	r.tasks[id] = updatedTask
-	return nil
-}
+		// Verify all fields were updated
+		require.Equal(t, newTitle, updatedTask.Title())
+		require.Equal(t, &newDescription, updatedTask.Description())
+		require.Equal(t, newDueDate.UTC(), updatedTask.DueDate().UTC())
+		require.Equal(t, &newAssignee, updatedTask.Asignee())
+		require.Equal(t, project.TaskStatusInProgress, updatedTask.Status())
 
-func (r *InMemoryTaskRepository) AllTasks(ctx context.Context) ([]project.Task, error) {
-	tasks := make([]project.Task, 0, len(r.tasks))
-	for _, task := range r.tasks {
-		tasks = append(tasks, *task)
-	}
-	return tasks, nil
+		// Verify timestamps
+		require.Equal(t, initialCreatedAt.UTC(), updatedTask.CreatedAt().UTC())
+		require.True(t, updatedTask.UpdatedAt().After(initialUpdatedAt))
+	})
+
+	t.Run("successfully updates individual fields", func(t *testing.T) {
+		task := createTaskWithID(t, "test task", nil, nil, nil)
+		err := repo.Create(ctx, task)
+		require.NoError(t, err)
+
+		// Update only title
+		newTitle := "new title"
+		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+			err := t.Edit(&newTitle, nil, nil, nil, nil)
+			if err != nil {
+				return nil, err
+			}
+			return t, nil
+		})
+		require.NoError(t, err)
+
+		updatedTask, err := repo.GetByID(ctx, task.ID())
+		require.NoError(t, err)
+		require.Equal(t, newTitle, updatedTask.Title())
+		require.Nil(t, updatedTask.Description())
+		require.Nil(t, updatedTask.DueDate())
+		require.Nil(t, updatedTask.Asignee())
+		require.Equal(t, project.TaskStatusPending, updatedTask.Status()) // Status remains unchanged
+
+		// Update only description
+		newDescription := "new description"
+		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+			err := t.Edit(nil, &newDescription, nil, nil, nil)
+			if err != nil {
+				return nil, err
+			}
+			return t, nil
+		})
+		require.NoError(t, err)
+
+		updatedTask, err = repo.GetByID(ctx, task.ID())
+		require.NoError(t, err)
+		require.Equal(t, newTitle, updatedTask.Title()) // Title remains unchanged
+		require.Equal(t, &newDescription, updatedTask.Description())
+		require.Nil(t, updatedTask.DueDate())
+		require.Nil(t, updatedTask.Asignee())
+	})
 }

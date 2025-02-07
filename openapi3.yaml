@@ -148,6 +148,9 @@ components:
           type: string
         title:
           type: string
+        updated_at:
+          format: date-time
+          type: string
       required:
         - id
         - title
@@ -155,6 +158,7 @@ components:
         - due_date
         - assignee
         - created_at
+        - updated_at
         - completed_at
         - status
       type: object

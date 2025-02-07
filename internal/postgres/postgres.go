@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     due_date TIMESTAMP WITH TIME ZONE,
     assignee TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     completed_at TIMESTAMP WITH TIME ZONE,
     status VARCHAR(20) NOT NULL
 );

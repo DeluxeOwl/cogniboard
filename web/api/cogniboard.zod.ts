@@ -21,7 +21,8 @@ export const tasksResponse = zod.object({
   "due_date": zod.string().datetime().nullable(),
   "id": zod.string(),
   "status": zod.string(),
-  "title": zod.string()
+  "title": zod.string(),
+  "updated_at": zod.string().datetime()
 })).nullable()
 })
 

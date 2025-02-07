@@ -141,6 +141,7 @@ export interface TaskDTO {
   id: string;
   status: string;
   title: string;
+  updated_at: string;
 }
 
 export interface TasksDTO {

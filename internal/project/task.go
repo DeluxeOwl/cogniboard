@@ -35,6 +35,7 @@ type Task struct {
 	dueDate     *time.Time
 	asigneeName *string
 	createdAt   time.Time
+	updatedAt   time.Time
 	completedAt *time.Time
 	status      TaskStatus
 }
@@ -71,9 +72,11 @@ func NewTask(id TaskID, title string, description *string, dueDate *time.Time, a
 		return nil, ErrDueDateInPast
 	}
 
+	now := time.Now()
 	task := &Task{
 		id:          id,
-		createdAt:   time.Now(),
+		createdAt:   now,
+		updatedAt:   now,
 		dueDate:     dueDate,
 		asigneeName: assigneeName,
 		title:       title,
@@ -112,6 +115,7 @@ func (t *Task) Edit(title *string, description *string, dueDate *time.Time, assi
 		}
 	}
 
+	t.updatedAt = time.Now()
 	return nil
 }
 
@@ -126,6 +130,7 @@ func (t *Task) ChangeStatus(status TaskStatus) error {
 		t.completedAt = nil
 	}
 	t.status = status
+	t.updatedAt = time.Now()
 	return nil
 }
 
@@ -165,6 +170,10 @@ func (t *Task) CreatedAt() time.Time {
 	return t.createdAt
 }
 
+func (t *Task) UpdatedAt() time.Time {
+	return t.updatedAt
+}
+
 func (t *Task) CompletedAt() *time.Time {
 	if t.completedAt == nil {
 		return nil
@@ -184,6 +193,7 @@ func UnmarshalTaskFromDB(
 	dueDate *time.Time,
 	assigneeName *string,
 	createdAt time.Time,
+	updatedAt time.Time,
 	completedAt *time.Time,
 	status TaskStatus,
 ) (*Task, error) {
@@ -193,6 +203,7 @@ func UnmarshalTaskFromDB(
 	}
 
 	task.createdAt = createdAt
+	task.updatedAt = updatedAt
 	task.completedAt = completedAt
 	task.status = status
 

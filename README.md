@@ -61,43 +61,33 @@ cp .env.example .env
 task install
 ```
 
-2. Set up the development environment:
+3. Set up the development environment:
 ```bash
 task setup
 ```
 
-3. Start the development services (PostgreSQL):
+4. Start the development services (PostgreSQL):
 ```bash
 task docker
 ```
 
-4. Run the API service:
+5. Run the API service:
 ```bash
-task run-api
+task server
 ```
 
 The API will be available at `http://localhost:8000` by default.
 
 ### Frontend Development
 
-1. Navigate to the web directory:
-```bash
-cd web
-```
-
-2. Install dependencies:
-```bash
-bun install
-```
-
-3. Generate React Query hooks from OpenAPI spec:
+1. Generate React Query hooks from OpenAPI spec:
 ```bash
 task gen-hooks
 ```
 
-4. Start the development server:
+2. Start the development server:
 ```bash
-bun dev
+task web
 ```
 
 The frontend will be available at `http://localhost:5173` by default.
@@ -107,10 +97,11 @@ The frontend will be available at `http://localhost:5173` by default.
 - `task install` - Install devbox if not already installed
 - `task setup` - Setup development environment
 - `task docker` - Start Docker services
-- `task run-api` - Run the API service
-- `task gen-hooks` - Generate React Query hooks from OpenAPI spec
-- `task dev` - Start development environment (includes Docker and API)
+- `task docker-down` - Stop docker services
+- `task server` - Run the API service
+- `task gen-hooks` - Generate React Query hooks
 - `task web` - Start the web server
+- `task dev` - Start development environment (includes Docker and API)
 
 ## Environment Variables
 

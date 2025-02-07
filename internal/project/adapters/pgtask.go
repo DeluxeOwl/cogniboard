@@ -19,6 +19,7 @@ type taskDTO struct {
 	DueDate      *time.Time `db:"due_date"`
 	AssigneeName *string    `db:"assignee"`
 	CreatedAt    time.Time  `db:"created_at"`
+	UpdatedAt    time.Time  `db:"updated_at"`
 	CompletedAt  *time.Time `db:"completed_at"`
 	Status       string     `db:"status"`
 }
@@ -29,7 +30,6 @@ func (dto *taskDTO) toDomain() (*project.Task, error) {
 		id := string(*dto.AssigneeName)
 		assigneeName = &id
 	}
-
 	return project.UnmarshalTaskFromDB(
 		project.TaskID(dto.ID),
 		dto.Title,
@@ -37,6 +37,7 @@ func (dto *taskDTO) toDomain() (*project.Task, error) {
 		dto.DueDate,
 		assigneeName,
 		dto.CreatedAt,
+		dto.UpdatedAt,
 		dto.CompletedAt,
 		project.TaskStatus(dto.Status),
 	)
@@ -56,6 +57,7 @@ func toDTO(t *project.Task) *taskDTO {
 		DueDate:      t.DueDate(),
 		AssigneeName: assigneeName,
 		CreatedAt:    t.CreatedAt(),
+		UpdatedAt:    t.UpdatedAt(),
 		CompletedAt:  t.CompletedAt(),
 		Status:       string(t.Status()),
 	}
@@ -83,8 +85,8 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task)
 	dto := toDTO(task)
 
 	_, err := r.db.NamedExecContext(ctx,
-		`INSERT INTO tasks (id, title, description, due_date, assignee, created_at, completed_at, status)
-		VALUES (:id, :title, :description, :due_date, :assignee, :created_at, :completed_at, :status)`,
+		`INSERT INTO tasks (id, title, description, due_date, assignee, created_at, updated_at, completed_at, status)
+		VALUES (:id, :title, :description, :due_date, :assignee, :created_at, :updated_at, :completed_at, :status)`,
 		dto,
 	)
 
@@ -94,7 +96,7 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task)
 func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID) (*project.Task, error) {
 	var dto taskDTO
 	err := r.db.GetContext(ctx, &dto,
-		`SELECT id, title, description, due_date, assignee, created_at, completed_at, status
+		`SELECT id, title, description, due_date, assignee, created_at, updated_at, completed_at, status
 		FROM tasks WHERE id = $1`,
 		string(id),
 	)
@@ -142,9 +144,9 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 
 	updatedDTO := toDTO(updatedTask)
 	_, err = tx.NamedExecContext(ctx,
-		`UPDATE tasks 
-		SET title = :title, description = :description, due_date = :due_date, 
-			assignee = :assignee, created_at = :created_at, 
+		`UPDATE tasks
+		SET title = :title, description = :description, due_date = :due_date,
+			assignee = :assignee, created_at = :created_at, updated_at = :updated_at,
 			completed_at = :completed_at, status = :status
 		WHERE id = :id`,
 		updatedDTO,
@@ -164,7 +166,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 func (r *PostgresTaskRepository) AllTasks(ctx context.Context) ([]project.Task, error) {
 	var dtos []taskDTO
 	err := r.db.SelectContext(ctx, &dtos,
-		`SELECT id, title, description, due_date, assignee, created_at, completed_at, status
+		`SELECT id, title, description, due_date, assignee, created_at, updated_at, completed_at, status
 		FROM tasks`)
 	if err != nil {
 		return nil, fmt.Errorf("select tasks: %w", err)

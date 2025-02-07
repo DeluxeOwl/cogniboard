@@ -86,6 +86,7 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body Tas
 			Assignee:    task.Asignee(),
 			CreatedAt:   task.CreatedAt(),
 			CompletedAt: task.CompletedAt(),
+			UpdatedAt:   task.UpdatedAt(),
 			Status:      string(task.Status()),
 		}
 	}

@@ -18,6 +18,7 @@ type TaskDTO struct {
 	DueDate     *time.Time `json:"due_date"`
 	Assignee    *string    `json:"assignee"`
 	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 	CompletedAt *time.Time `json:"completed_at"`
 	Status      string     `json:"status"`
 }
