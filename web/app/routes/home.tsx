@@ -98,7 +98,7 @@ const Home = () => {
 								.filter((task) => task.status === status.name)
 								.map((feature, index) => (
 									<KanbanCard
-										key={feature.created_at}
+										key={feature.updated_at}
 										id={feature.id}
 										name={feature.title}
 										parent={status.name}
@@ -172,7 +172,13 @@ function useKanbanBoard() {
 
 		// Get the current query data
 		const queryKey = getTasksQueryKey();
-		const previousTasks = queryClient.getQueryData(queryKey);
+		const previousTasks = queryClient.getQueryData(queryKey) as any;
+
+		// Find the task's current status
+		const currentTask = previousTasks?.data?.tasks?.find((task: any) => task.id === taskId);
+		if (currentTask?.status === newStatus) {
+			return; // Skip if status hasn't changed
+		}
 
 		// Optimistically update the task status
 		queryClient.setQueryData(queryKey, (old: any) => ({
