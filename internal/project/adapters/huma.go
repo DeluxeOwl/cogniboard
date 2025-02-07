@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/commands"
 	"github.com/danielgtaylor/huma/v2"
@@ -59,7 +60,7 @@ func handleError(err error) error {
 	return nil
 }
 
-func (h *Huma) createTask(ctx context.Context, input *struct{ Body CreateTaskDTO }) (*struct{}, error) {
+func (h *Huma) createTask(ctx context.Context, input *struct{ Body project.InCreateTaskDTO }) (*struct{}, error) {
 	err := h.app.Commands.CreateTask.Handle(ctx, commands.CreateTask{
 		Title:        input.Body.Title,
 		Description:  input.Body.Description,
@@ -70,15 +71,15 @@ func (h *Huma) createTask(ctx context.Context, input *struct{ Body CreateTaskDTO
 	return nil, handleError(err)
 }
 
-func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body TasksDTO }, error) {
+func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body project.InTasksDTO }, error) {
 	tasks, err := h.app.Queries.AllTasks.Handle(ctx, struct{}{})
 	if err != nil {
 		return nil, huma.Error400BadRequest("couldn't get tasks", err)
 	}
 
-	dtos := make([]TaskDTO, len(tasks))
+	dtos := make([]project.InTaskDTO, len(tasks))
 	for i, task := range tasks {
-		dtos[i] = TaskDTO{
+		dtos[i] = project.InTaskDTO{
 			ID:          string(task.ID()),
 			Title:       task.Title(),
 			Description: task.Description(),
@@ -91,14 +92,14 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body Tas
 		}
 	}
 
-	return &struct{ Body TasksDTO }{
-		Body: TasksDTO{Tasks: dtos},
+	return &struct{ Body project.InTasksDTO }{
+		Body: project.InTasksDTO{Tasks: dtos},
 	}, nil
 }
 
 func (h *Huma) editTask(ctx context.Context, input *struct {
-	TaskID string      `path:"taskId"`
-	Body   EditTaskDTO `json:"body"`
+	TaskID string                `path:"taskId"`
+	Body   project.InEditTaskDTO `json:"body"`
 }) (*struct{}, error) {
 	err := h.app.Commands.EditTask.Handle(ctx, commands.EditTask{
 		TaskID:       input.TaskID,
@@ -113,8 +114,8 @@ func (h *Huma) editTask(ctx context.Context, input *struct {
 }
 
 func (h *Huma) changeTaskStatus(ctx context.Context, input *struct {
-	TaskID string              `path:"taskId"`
-	Body   ChangeTaskStatusDTO `json:"body"`
+	TaskID string                        `path:"taskId"`
+	Body   project.InChangeTaskStatusDTO `json:"body"`
 }) (*struct{}, error) {
 	err := h.app.Commands.ChangeTaskStatus.Handle(ctx, commands.ChangeTaskStatus{
 		TaskID: input.TaskID,

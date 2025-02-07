@@ -5,63 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	// postgres driver
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/jmoiron/sqlx"
 )
-
-type taskDTO struct {
-	ID           string     `db:"id"`
-	Title        string     `db:"title"`
-	Description  *string    `db:"description"`
-	DueDate      *time.Time `db:"due_date"`
-	AssigneeName *string    `db:"assignee"`
-	CreatedAt    time.Time  `db:"created_at"`
-	UpdatedAt    time.Time  `db:"updated_at"`
-	CompletedAt  *time.Time `db:"completed_at"`
-	Status       string     `db:"status"`
-}
-
-func (dto *taskDTO) toDomain() (*project.Task, error) {
-	var assigneeName *string
-	if dto.AssigneeName != nil {
-		id := string(*dto.AssigneeName)
-		assigneeName = &id
-	}
-	return project.UnmarshalTaskFromDB(
-		project.TaskID(dto.ID),
-		dto.Title,
-		dto.Description,
-		dto.DueDate,
-		assigneeName,
-		dto.CreatedAt,
-		dto.UpdatedAt,
-		dto.CompletedAt,
-		project.TaskStatus(dto.Status),
-	)
-}
-
-func toDTO(t *project.Task) *taskDTO {
-	var assigneeName *string
-	if t.Asignee() != nil {
-		nr := string(*t.Asignee())
-		assigneeName = &nr
-	}
-
-	return &taskDTO{
-		ID:           string(t.ID()),
-		Title:        t.Title(),
-		Description:  t.Description(),
-		DueDate:      t.DueDate(),
-		AssigneeName: assigneeName,
-		CreatedAt:    t.CreatedAt(),
-		UpdatedAt:    t.UpdatedAt(),
-		CompletedAt:  t.CompletedAt(),
-		Status:       string(t.Status()),
-	}
-}
 
 type PostgresTaskRepository struct {
 	db *sqlx.DB
@@ -82,7 +30,7 @@ func NewPostgresTaskRepository(db *sqlx.DB) (*PostgresTaskRepository, error) {
 }
 
 func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task) error {
-	dto := toDTO(task)
+	dto := project.ToOutTaskDTO(task)
 
 	_, err := r.db.NamedExecContext(ctx,
 		`INSERT INTO tasks (id, title, description, due_date, assignee, created_at, updated_at, completed_at, status)
@@ -94,7 +42,7 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task)
 }
 
 func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID) (*project.Task, error) {
-	var dto taskDTO
+	var dto project.OutTaskDTO
 	err := r.db.GetContext(ctx, &dto,
 		`SELECT id, title, description, due_date, assignee, created_at, updated_at, completed_at, status
 		FROM tasks WHERE id = $1`,
@@ -108,7 +56,7 @@ func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID)
 		return nil, fmt.Errorf("get task: %w", err)
 	}
 
-	return dto.toDomain()
+	return project.FromOutTaskDTO(&dto)
 }
 
 func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.TaskID, updateFn func(t *project.Task) (*project.Task, error)) error {
@@ -118,7 +66,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 	}
 	defer tx.Rollback()
 
-	var dto taskDTO
+	var dto project.OutTaskDTO
 	err = tx.GetContext(ctx, &dto,
 		`SELECT id, title, description, due_date, assignee, created_at, completed_at, status
 		FROM tasks WHERE id = $1 FOR UPDATE`,
@@ -132,7 +80,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 		return fmt.Errorf("get task: %w", err)
 	}
 
-	existingTask, err := dto.toDomain()
+	existingTask, err := project.FromOutTaskDTO(&dto)
 	if err != nil {
 		return fmt.Errorf("convert to domain: %w", err)
 	}
@@ -142,7 +90,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 		return err
 	}
 
-	updatedDTO := toDTO(updatedTask)
+	updatedDTO := project.ToOutTaskDTO(updatedTask)
 	_, err = tx.NamedExecContext(ctx,
 		`UPDATE tasks
 		SET title = :title, description = :description, due_date = :due_date,
@@ -164,7 +112,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 }
 
 func (r *PostgresTaskRepository) AllTasks(ctx context.Context) ([]project.Task, error) {
-	var dtos []taskDTO
+	var dtos []project.OutTaskDTO
 	err := r.db.SelectContext(ctx, &dtos,
 		`SELECT id, title, description, due_date, assignee, created_at, updated_at, completed_at, status
 		FROM tasks`)
@@ -174,7 +122,7 @@ func (r *PostgresTaskRepository) AllTasks(ctx context.Context) ([]project.Task, 
 
 	tasks := []project.Task{}
 	for _, dto := range dtos {
-		task, err := dto.toDomain()
+		task, err := project.FromOutTaskDTO(&dto)
 		if err != nil {
 			return nil, fmt.Errorf("convert task to domain: %w", err)
 		}

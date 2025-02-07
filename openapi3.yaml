@@ -1,75 +1,5 @@
 components:
   schemas:
-    ChangeTaskStatusDTO:
-      additionalProperties: false
-      properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/ChangeTaskStatusDTO.json
-          format: uri
-          readOnly: true
-          type: string
-        status:
-          description: New status for the task
-          minLength: 1
-          type: string
-      required:
-        - status
-      type: object
-    CreateTaskDTO:
-      additionalProperties: false
-      properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/CreateTaskDTO.json
-          format: uri
-          readOnly: true
-          type: string
-        assignee_name:
-          description: Task's asignee (if any)
-          type: string
-        description:
-          description: Task's description
-          type: string
-        due_date:
-          description: Task's due date (if any)
-          format: date-time
-          type: string
-        title:
-          description: Task's name
-          maxLength: 50
-          minLength: 1
-          type: string
-      required:
-        - title
-      type: object
-    EditTaskDTO:
-      additionalProperties: false
-      properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/EditTaskDTO.json
-          format: uri
-          readOnly: true
-          type: string
-        assignee_name:
-          description: Name of the person to assign the task to
-          type: string
-        description:
-          description: Task's description
-          type: string
-        due_date:
-          description: Task's due date
-          format: date-time
-          type: string
-        status:
-          description: Task's status
-          type: string
-        title:
-          description: Task's title
-          maxLength: 50
-          type: string
-      type: object
     ErrorDetail:
       additionalProperties: false
       properties:
@@ -122,7 +52,77 @@ components:
           format: uri
           type: string
       type: object
-    TaskDTO:
+    InChangeTaskStatusDTO:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: http://127.0.0.1:8888/v1/api/schemas/InChangeTaskStatusDTO.json
+          format: uri
+          readOnly: true
+          type: string
+        status:
+          description: New status for the task
+          minLength: 1
+          type: string
+      required:
+        - status
+      type: object
+    InCreateTaskDTO:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: http://127.0.0.1:8888/v1/api/schemas/InCreateTaskDTO.json
+          format: uri
+          readOnly: true
+          type: string
+        assignee_name:
+          description: Task's asignee (if any)
+          type: string
+        description:
+          description: Task's description
+          type: string
+        due_date:
+          description: Task's due date (if any)
+          format: date-time
+          type: string
+        title:
+          description: Task's name
+          maxLength: 50
+          minLength: 1
+          type: string
+      required:
+        - title
+      type: object
+    InEditTaskDTO:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: http://127.0.0.1:8888/v1/api/schemas/InEditTaskDTO.json
+          format: uri
+          readOnly: true
+          type: string
+        assignee_name:
+          description: Name of the person to assign the task to
+          type: string
+        description:
+          description: Task's description
+          type: string
+        due_date:
+          description: Task's due date
+          format: date-time
+          type: string
+        status:
+          description: Task's status
+          type: string
+        title:
+          description: Task's title
+          maxLength: 50
+          type: string
+      type: object
+    InTaskDTO:
       additionalProperties: false
       properties:
         assignee:
@@ -162,18 +162,18 @@ components:
         - completed_at
         - status
       type: object
-    TasksDTO:
+    InTasksDTO:
       additionalProperties: false
       properties:
         $schema:
           description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/TasksDTO.json
+          example: http://127.0.0.1:8888/v1/api/schemas/InTasksDTO.json
           format: uri
           readOnly: true
           type: string
         tasks:
           items:
-            $ref: "#/components/schemas/TaskDTO"
+            $ref: "#/components/schemas/InTaskDTO"
           nullable: true
           type: array
       required:
@@ -192,7 +192,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TasksDTO"
+                $ref: "#/components/schemas/InTasksDTO"
           description: OK
         default:
           content:
@@ -208,7 +208,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateTaskDTO"
+              $ref: "#/components/schemas/InCreateTaskDTO"
         required: true
       responses:
         "204":
@@ -233,7 +233,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/EditTaskDTO"
+              $ref: "#/components/schemas/InEditTaskDTO"
         required: true
       responses:
         "204":
@@ -258,7 +258,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ChangeTaskStatusDTO"
+              $ref: "#/components/schemas/InChangeTaskStatusDTO"
         required: true
       responses:
         "204":
