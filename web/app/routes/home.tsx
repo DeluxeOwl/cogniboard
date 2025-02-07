@@ -1,8 +1,8 @@
 import { getTasksQueryKey, useTaskChangeStatus, useTasks } from "@/api/cogniboard";
 import type { TaskDTO } from "@/api/cogniboard";
 import { useQueryClient } from "@tanstack/react-query";
-import AddTaskDialog from "./project/add.task";
-import EditTaskDialog from "./project/edit.task";
+import AddTaskDialog from "./project/task.add";
+import EditTaskDialog from "./project/task.edit";
 import { useState } from "react";
 import {
 	KanbanBoard,
