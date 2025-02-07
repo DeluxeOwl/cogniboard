@@ -1,6 +1,9 @@
 import { getTasksQueryKey, useTaskChangeStatus, useTasks } from "@/api/cogniboard";
+import type { TaskDTO } from "@/api/cogniboard";
 import { useQueryClient } from "@tanstack/react-query";
 import AddTaskDialog from "./project/add.task";
+import EditTaskDialog from "./project/edit.task";
+import { useState } from "react";
 import {
 	KanbanBoard,
 	KanbanCard,
@@ -11,6 +14,8 @@ import {
 import type { DragEndEvent } from "./project/kanban.ts";
 
 const Home = () => {
+	const [selectedTask, setSelectedTask] = useState<TaskDTO | null>(null);
+	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const { tasks, isLoading, isError, error, handleDragEnd } = useKanbanBoard();
 
 	if (isLoading || !tasks) {
@@ -31,6 +36,13 @@ const Home = () => {
 			<span className="ms-4">
 				<AddTaskDialog />
 			</span>
+			{selectedTask && (
+				<EditTaskDialog
+					task={selectedTask}
+					open={editDialogOpen}
+					onOpenChange={setEditDialogOpen}
+				/>
+			)}
 			<KanbanProvider
 				onDragEnd={handleDragEnd}
 				className="p-4"
@@ -54,6 +66,10 @@ const Home = () => {
 										name={feature.title}
 										parent={status.name}
 										index={index}
+										onClick={() => {
+											setSelectedTask(feature);
+											setEditDialogOpen(true);
+										}}
 									>
 										<div className="flex items-start justify-between gap-2">
 											<div className="flex flex-col gap-1">
