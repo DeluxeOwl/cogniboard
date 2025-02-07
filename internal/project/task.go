@@ -134,54 +134,29 @@ func (t *Task) ChangeStatus(status TaskStatus) error {
 	return nil
 }
 
-func (t *Task) ID() TaskID {
-	return t.id
+type TaskSnapshot struct {
+	ID          TaskID
+	Title       string
+	Description *string
+	DueDate     *time.Time
+	AsigneeName *string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	CompletedAt *time.Time
+	Status      TaskStatus
 }
 
-func (t *Task) Title() string {
-	return t.title
-}
-
-func (t *Task) Description() *string {
-	if t.description == nil {
-		return nil
+// Should only be used for testing
+func (t *Task) GetSnapshot() *TaskSnapshot {
+	return &TaskSnapshot{
+		ID:          t.id,
+		Title:       t.title,
+		Description: t.description,
+		DueDate:     t.dueDate,
+		AsigneeName: t.asigneeName,
+		CreatedAt:   t.createdAt,
+		UpdatedAt:   t.updatedAt,
+		CompletedAt: t.completedAt,
+		Status:      t.status,
 	}
-	copy := *t.description
-	return &copy
-}
-
-func (t *Task) DueDate() *time.Time {
-	if t.dueDate == nil {
-		return nil
-	}
-	copy := *t.dueDate
-	return &copy
-}
-
-func (t *Task) Asignee() *string {
-	if t.asigneeName == nil {
-		return nil
-	}
-	copy := *t.asigneeName
-	return &copy
-}
-
-func (t *Task) CreatedAt() time.Time {
-	return t.createdAt
-}
-
-func (t *Task) UpdatedAt() time.Time {
-	return t.updatedAt
-}
-
-func (t *Task) CompletedAt() *time.Time {
-	if t.completedAt == nil {
-		return nil
-	}
-	copy := *t.completedAt
-	return &copy
-}
-
-func (t *Task) Status() TaskStatus {
-	return t.status
 }

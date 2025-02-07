@@ -92,10 +92,10 @@ func Test_RepoCreate(t *testing.T) {
 	err := repo.Create(ctx, task)
 	require.NoError(t, err)
 
-	taskFromDB, err := repo.GetByID(ctx, task.ID())
+	taskFromDB, err := repo.GetByID(ctx, task.GetSnapshot().ID)
 	require.NoError(t, err)
 
-	require.Equal(t, taskFromDB.ID(), task.ID())
+	require.Equal(t, taskFromDB.GetSnapshot().ID, task.GetSnapshot().ID)
 }
 
 func Test_RepoGetByID(t *testing.T) {
@@ -122,19 +122,19 @@ func Test_RepoGetByID(t *testing.T) {
 		err := repo.Create(ctx, task)
 		require.NoError(t, err)
 
-		taskFromDB, err := repo.GetByID(ctx, task.ID())
+		taskFromDB, err := repo.GetByID(ctx, task.GetSnapshot().ID)
 		require.NoError(t, err)
 		require.NotNil(t, taskFromDB)
 
-		require.Equal(t, task.ID(), taskFromDB.ID())
-		require.Equal(t, task.Title(), taskFromDB.Title())
-		require.Equal(t, task.Description(), taskFromDB.Description())
-		require.Equal(t, task.DueDate().UTC(), taskFromDB.DueDate().UTC())
-		require.Equal(t, task.Asignee(), taskFromDB.Asignee())
-		require.Equal(t, task.Status(), taskFromDB.Status())
-		require.Equal(t, task.CreatedAt().UTC(), taskFromDB.CreatedAt().UTC())
-		require.Equal(t, task.CompletedAt(), taskFromDB.CompletedAt())
-		require.Equal(t, task.UpdatedAt().UTC(), taskFromDB.UpdatedAt().UTC())
+		require.Equal(t, task.GetSnapshot().ID, taskFromDB.GetSnapshot().ID)
+		require.Equal(t, task.GetSnapshot().Title, taskFromDB.GetSnapshot().Title)
+		require.Equal(t, task.GetSnapshot().Description, taskFromDB.GetSnapshot().Description)
+		require.Equal(t, task.GetSnapshot().DueDate.UTC(), taskFromDB.GetSnapshot().DueDate.UTC())
+		require.Equal(t, task.GetSnapshot().AsigneeName, taskFromDB.GetSnapshot().AsigneeName)
+		require.Equal(t, task.GetSnapshot().Status, taskFromDB.GetSnapshot().Status)
+		require.Equal(t, task.GetSnapshot().CreatedAt.UTC(), taskFromDB.GetSnapshot().CreatedAt.UTC())
+		require.Equal(t, task.GetSnapshot().CompletedAt, taskFromDB.GetSnapshot().CompletedAt)
+		require.Equal(t, task.GetSnapshot().UpdatedAt.UTC(), taskFromDB.GetSnapshot().UpdatedAt.UTC())
 	})
 }
 
@@ -159,7 +159,7 @@ func Test_RepoUpdateTask(t *testing.T) {
 		err := repo.Create(ctx, task)
 		require.NoError(t, err)
 
-		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+		err = repo.UpdateTask(ctx, task.GetSnapshot().ID, func(t *project.Task) (*project.Task, error) {
 			err := t.ChangeStatus(project.TaskStatusCompleted)
 			if err != nil {
 				return nil, err
@@ -168,10 +168,11 @@ func Test_RepoUpdateTask(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		updatedTask, err := repo.GetByID(ctx, task.ID())
+		updatedTask, err := repo.GetByID(ctx, task.GetSnapshot().ID)
+		snap := updatedTask.GetSnapshot()
 		require.NoError(t, err)
-		require.Equal(t, project.TaskStatusCompleted, updatedTask.Status())
-		require.NotNil(t, updatedTask.CompletedAt())
+		require.Equal(t, project.TaskStatusCompleted, snap.Status)
+		require.NotNil(t, snap.CompletedAt)
 	})
 
 	t.Run("rolls back transaction on update function error", func(t *testing.T) {
@@ -180,7 +181,7 @@ func Test_RepoUpdateTask(t *testing.T) {
 		require.NoError(t, err)
 
 		expectedError := fmt.Errorf("update error")
-		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+		err = repo.UpdateTask(ctx, task.GetSnapshot().ID, func(t *project.Task) (*project.Task, error) {
 			err := t.ChangeStatus(project.TaskStatusCompleted)
 			if err != nil {
 				return nil, err
@@ -189,10 +190,11 @@ func Test_RepoUpdateTask(t *testing.T) {
 		})
 		require.ErrorIs(t, err, expectedError)
 
-		unchangedTask, err := repo.GetByID(ctx, task.ID())
+		unchangedTask, err := repo.GetByID(ctx, task.GetSnapshot().ID)
+		snap := unchangedTask.GetSnapshot()
 		require.NoError(t, err)
-		require.Equal(t, project.TaskStatusPending, unchangedTask.Status())
-		require.Nil(t, unchangedTask.CompletedAt())
+		require.Equal(t, project.TaskStatusPending, snap.Status)
+		require.Nil(t, snap.CompletedAt)
 	})
 
 	t.Run("successfully updates task fields and sets updated_at", func(t *testing.T) {
@@ -205,8 +207,8 @@ func Test_RepoUpdateTask(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store initial timestamps for comparison
-		initialCreatedAt := task.CreatedAt()
-		initialUpdatedAt := task.UpdatedAt()
+		initialCreatedAt := task.GetSnapshot().CreatedAt
+		initialUpdatedAt := task.GetSnapshot().UpdatedAt
 
 		// Wait a moment to ensure updated_at will be different
 		time.Sleep(time.Millisecond * 10)
@@ -216,7 +218,7 @@ func Test_RepoUpdateTask(t *testing.T) {
 		newDueDate := time.Now().Add(48 * time.Hour)
 		newAssignee := "updated assignee"
 
-		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+		err = repo.UpdateTask(ctx, task.GetSnapshot().ID, func(t *project.Task) (*project.Task, error) {
 			newStatus := project.TaskStatusInProgress
 			err := t.Edit(&newTitle, &newDescription, &newDueDate, &newAssignee, &newStatus)
 			if err != nil {
@@ -226,19 +228,20 @@ func Test_RepoUpdateTask(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		updatedTask, err := repo.GetByID(ctx, task.ID())
+		updatedTask, err := repo.GetByID(ctx, task.GetSnapshot().ID)
 		require.NoError(t, err)
 
+		snap := updatedTask.GetSnapshot()
 		// Verify all fields were updated
-		require.Equal(t, newTitle, updatedTask.Title())
-		require.Equal(t, &newDescription, updatedTask.Description())
-		require.Equal(t, newDueDate.UTC(), updatedTask.DueDate().UTC())
-		require.Equal(t, &newAssignee, updatedTask.Asignee())
-		require.Equal(t, project.TaskStatusInProgress, updatedTask.Status())
+		require.Equal(t, newTitle, snap.Title)
+		require.Equal(t, &newDescription, snap.Description)
+		require.Equal(t, newDueDate.UTC(), snap.DueDate.UTC())
+		require.Equal(t, &newAssignee, snap.AsigneeName)
+		require.Equal(t, project.TaskStatusInProgress, snap.Status)
 
 		// Verify timestamps
-		require.Equal(t, initialCreatedAt.UTC(), updatedTask.CreatedAt().UTC())
-		require.True(t, updatedTask.UpdatedAt().After(initialUpdatedAt))
+		require.Equal(t, initialCreatedAt.UTC(), snap.CreatedAt.UTC())
+		require.True(t, snap.UpdatedAt.After(initialUpdatedAt))
 	})
 
 	t.Run("successfully updates individual fields", func(t *testing.T) {
@@ -248,7 +251,7 @@ func Test_RepoUpdateTask(t *testing.T) {
 
 		// Update only title
 		newTitle := "new title"
-		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+		err = repo.UpdateTask(ctx, task.GetSnapshot().ID, func(t *project.Task) (*project.Task, error) {
 			err := t.Edit(&newTitle, nil, nil, nil, nil)
 			if err != nil {
 				return nil, err
@@ -257,17 +260,19 @@ func Test_RepoUpdateTask(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		updatedTask, err := repo.GetByID(ctx, task.ID())
+		updatedTask, err := repo.GetByID(ctx, task.GetSnapshot().ID)
 		require.NoError(t, err)
-		require.Equal(t, newTitle, updatedTask.Title())
-		require.Nil(t, updatedTask.Description())
-		require.Nil(t, updatedTask.DueDate())
-		require.Nil(t, updatedTask.Asignee())
-		require.Equal(t, project.TaskStatusPending, updatedTask.Status()) // Status remains unchanged
+
+		snap := updatedTask.GetSnapshot()
+		require.Equal(t, newTitle, snap.Title)
+		require.Nil(t, snap.Description)
+		require.Nil(t, snap.DueDate)
+		require.Nil(t, snap.AsigneeName)
+		require.Equal(t, project.TaskStatusPending, snap.Status) // Status remains unchanged
 
 		// Update only description
 		newDescription := "new description"
-		err = repo.UpdateTask(ctx, task.ID(), func(t *project.Task) (*project.Task, error) {
+		err = repo.UpdateTask(ctx, snap.ID, func(t *project.Task) (*project.Task, error) {
 			err := t.Edit(nil, &newDescription, nil, nil, nil)
 			if err != nil {
 				return nil, err
@@ -276,11 +281,12 @@ func Test_RepoUpdateTask(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		updatedTask, err = repo.GetByID(ctx, task.ID())
+		updatedTask, err = repo.GetByID(ctx, snap.ID)
+		snap = updatedTask.GetSnapshot()
 		require.NoError(t, err)
-		require.Equal(t, newTitle, updatedTask.Title()) // Title remains unchanged
-		require.Equal(t, &newDescription, updatedTask.Description())
-		require.Nil(t, updatedTask.DueDate())
-		require.Nil(t, updatedTask.Asignee())
+		require.Equal(t, newTitle, snap.Title) // Title remains unchanged
+		require.Equal(t, &newDescription, snap.Description)
+		require.Nil(t, snap.DueDate)
+		require.Nil(t, snap.AsigneeName)
 	})
 }
