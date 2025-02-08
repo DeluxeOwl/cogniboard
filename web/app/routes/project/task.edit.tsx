@@ -1,5 +1,10 @@
-import { getTasksQueryKey, useTaskEdit } from "@/api/cogniboard";
-import { taskEditBody, taskEditBodyTitleMax } from "@/api/cogniboard.zod";
+import {
+	type InTaskDTO,
+	inEditTaskDTOSchema,
+	taskEditMutationRequestSchema,
+	tasksQueryKey,
+	useTaskEdit,
+} from "@/api";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -14,15 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
+import { useId } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
-import { Loader2 } from "lucide-react";
-import { useId, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import type { TaskDTO } from "@/api/cogniboard";
 
 interface EditTaskDialogProps {
-	task: TaskDTO;
+	task: InTaskDTO;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
@@ -42,6 +46,7 @@ export default function EditTaskDialog({ task, open, onOpenChange }: EditTaskDia
 	} = form;
 
 	const title = watch("title");
+	const taskEditBodyTitleMax = 50;
 	const charactersLeft = taskEditBodyTitleMax - (title?.length || 0);
 
 	return (
@@ -106,7 +111,7 @@ export default function EditTaskDialog({ task, open, onOpenChange }: EditTaskDia
 						</form>
 						{mutation.error && (
 							<div className="mt-4 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-								{mutation.error.response?.data.title || "Failed to edit task. Please try again."}
+								{mutation.error.response?.data.message || "Failed to edit task. Please try again."}
 							</div>
 						)}
 					</div>
@@ -141,17 +146,17 @@ export default function EditTaskDialog({ task, open, onOpenChange }: EditTaskDia
 	);
 }
 
-type FormData = z.infer<typeof taskEditBody>;
+type FormData = z.infer<typeof inEditTaskDTOSchema>;
 
 interface UseEditTaskProps {
-	task: TaskDTO;
+	task: InTaskDTO;
 	onSuccess?: () => void;
 }
 
 export function useEditTask({ task, onSuccess }: UseEditTaskProps) {
 	const queryClient = useQueryClient();
 	const form = useForm<FormData>({
-		resolver: zodResolver(taskEditBody),
+		resolver: zodResolver(inEditTaskDTOSchema),
 		// Using values here keeps the form in sync with the props
 		values: {
 			title: task.title,
@@ -172,7 +177,7 @@ export function useEditTask({ task, onSuccess }: UseEditTaskProps) {
 			},
 			{
 				onSuccess: () => {
-					queryClient.invalidateQueries({ queryKey: getTasksQueryKey() });
+					queryClient.invalidateQueries({ queryKey: tasksQueryKey() });
 					onSuccess?.();
 					form.reset();
 				},

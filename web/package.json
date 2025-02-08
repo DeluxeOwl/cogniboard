@@ -8,7 +8,7 @@
 		"start": "react-router-serve ./build/server/index.js",
 		"typecheck": "react-router typegen && tsc",
 		"format": "bunx biome check --write .",
-		"gen-api": "rm -rf ./api/ && bun orval"
+		"gen-api": "bunx kubb generate"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.3.1",
@@ -35,12 +35,17 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
+		"@kubb/core": "^3.5.9",
+		"@kubb/plugin-client": "^3.5.9",
+		"@kubb/plugin-oas": "^3.5.9",
+		"@kubb/plugin-react-query": "^3.5.9",
+		"@kubb/plugin-ts": "^3.5.9",
+		"@kubb/plugin-zod": "^3.5.9",
 		"@react-router/dev": "^7.1.5",
 		"@types/node": "^20",
 		"@types/react": "^19.0.1",
 		"@types/react-dom": "^19.0.1",
 		"autoprefixer": "^10.4.20",
-		"orval": "^7.5.0",
 		"postcss": "^8.5.1",
 		"react-router-devtools": "^1.1.0",
 		"tailwindcss": "3",

@@ -2,14 +2,18 @@ package project
 
 import (
 	"time"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
 // In DTOs - for input adapters: e.g REST api
 type InCreateTaskDTO struct {
-	Title        string     `json:"title" doc:"Task's name" minLength:"1" maxLength:"50"`
-	Description  *string    `json:"description,omitempty" doc:"Task's description"`
-	DueDate      *time.Time `json:"due_date,omitempty" doc:"Task's due date (if any)" format:"date-time"`
-	AssigneeName *string    `json:"assignee_name,omitempty" doc:"Task's asignee (if any)"`
+	Title        string    `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
+	Description  string    `form:"description" doc:"Task's description"`
+	DueDate      time.Time `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
+	AssigneeName string    `form:"assignee_name" doc:"Task's asignee (if any)"`
+
+	Files []huma.FormFile `form:"files"`
 }
 
 type InTasksDTO struct {

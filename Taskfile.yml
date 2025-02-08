@@ -34,7 +34,7 @@ tasks:
     desc: Generate React Query hooks
     dir: web
     cmds:
-      - bunx orval
+      - bun gen-api
 
   web:
     desc: Start the web sever

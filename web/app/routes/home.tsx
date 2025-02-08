@@ -1,8 +1,11 @@
-import { getTasksQueryKey, useTaskChangeStatus, useTasks } from "@/api/cogniboard";
-import type { TaskDTO } from "@/api/cogniboard";
+import {
+	type InTaskDTO,
+	type InTasksDTO,
+	tasksQueryKey,
+	useTaskChangeStatus,
+	useTasks,
+} from "@/api/index.ts";
 import { useQueryClient } from "@tanstack/react-query";
-import AddTaskDialog from "./project/task.add";
-import EditTaskDialog from "./project/task.edit";
 import { useState } from "react";
 import {
 	KanbanBoard,
@@ -12,21 +15,20 @@ import {
 	KanbanProvider,
 } from "./project/kanban";
 import type { DragEndEvent } from "./project/kanban.ts";
+import AddTaskDialog from "./project/task.add";
+import EditTaskDialog from "./project/task.edit";
 
 function useHome() {
-	const [selectedTask, setSelectedTask] = useState<TaskDTO | null>(null);
+	const [selectedTask, setSelectedTask] = useState<InTaskDTO | null>(null);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const { tasks, isLoading, isError, error, handleDragEnd } = useKanbanBoard();
 
 	const isLoadingOrNoTasks = isLoading || !tasks;
 	const hasError = isError && error;
-	const errorMessage = hasError
-		? `${error.response?.data.title} ${error.response?.data.errors
-				?.map((e) => e.message)
-				.join(", ")}`
-		: "";
 
-	const handleTaskSelect = (task: TaskDTO) => {
+	const errorMessage = hasError ? error.response?.data.message : "";
+
+	const handleTaskSelect = (task: InTaskDTO) => {
 		setSelectedTask(task);
 		setEditDialogOpen(true);
 	};
@@ -171,25 +173,25 @@ function useKanbanBoard() {
 		const newStatus = status.name;
 
 		// Get the current query data
-		const queryKey = getTasksQueryKey();
-		const previousTasks = queryClient.getQueryData(queryKey) as any;
+		const queryKey = tasksQueryKey();
+		type DataType = typeof data;
+		const previousTasks = (queryClient.getQueryData(queryKey) as DataType)?.tasks;
 
 		// Find the task's current status
-		const currentTask = previousTasks?.data?.tasks?.find((task: any) => task.id === taskId);
+		const currentTask = previousTasks?.find((task: any) => task.id === taskId);
 		if (currentTask?.status === newStatus) {
 			return; // Skip if status hasn't changed
 		}
 
 		// Optimistically update the task status
-		queryClient.setQueryData(queryKey, (old: any) => ({
-			...old,
-			data: {
-				...old.data,
-				tasks: old.data.tasks.map((task: any) =>
+		queryClient.setQueryData(queryKey, (old: DataType) => {
+			return {
+				$schema: old?.$schema,
+				tasks: old?.tasks?.map((task: InTaskDTO) =>
 					task.id === taskId ? { ...task, status: newStatus } : task
 				),
-			},
-		}));
+			};
+		});
 
 		mutation.mutate(
 			{ taskId, data: { status: newStatus } },
@@ -207,7 +209,7 @@ function useKanbanBoard() {
 	};
 
 	return {
-		tasks: data?.data.tasks,
+		tasks: data?.tasks,
 		isLoading,
 		isError,
 		error,

@@ -1,5 +1,3 @@
-import { getTasksQueryKey, useTaskCreate } from "@/api/cogniboard";
-import { taskCreateBody } from "@/api/cogniboard.zod";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -18,10 +16,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
-import { taskCreateBodyTitleMax } from "@/api/cogniboard.zod";
+import {
+	inTaskDTOSchema,
+	type taskCreate204Schema,
+	taskCreateMutationRequestSchema,
+	tasksQueryKey,
+} from "@/api";
+import { useTaskCreate } from "@/api/hooks/useTaskCreate";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, LucidePlus } from "lucide-react";
 import { useId, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function AddTaskDialog() {
 	const id = useId();
@@ -38,6 +42,9 @@ export default function AddTaskDialog() {
 	} = form;
 
 	const title = watch("title");
+	const taskCreateBodyTitleMax =
+		taskCreateMutationRequestSchema.shape.title._def.checks.find((check) => check.kind === "max")
+			?.value ?? 50;
 	const charactersLeft = taskCreateBodyTitleMax - (title?.length || 0);
 
 	return (
@@ -78,7 +85,7 @@ export default function AddTaskDialog() {
 										aria-invalid={errors.title ? "true" : "false"}
 									/>
 									{errors.title ? (
-										<p className="text-sm text-destructive">{errors.title.message}</p>
+										<p className="text-sm text-destructive">{errors.title.message?.toString()}</p>
 									) : (
 										<p
 											id={`${id}-task-title`}
@@ -102,13 +109,16 @@ export default function AddTaskDialog() {
 									aria-invalid={errors.description ? "true" : "false"}
 								/>
 								{errors.description && (
-									<p className="text-sm text-destructive">{errors.description.message}</p>
+									<p className="text-sm text-destructive">
+										{errors.description.message?.toString()}
+									</p>
 								)}
 							</div>
 						</form>
 						{mutation.error && (
 							<div className="mt-4 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-								{mutation.error.response?.data.title || "Failed to create task. Please try again."}
+								{mutation.error.response?.data.message ||
+									"Failed to create task. Please try again."}
 							</div>
 						)}
 					</div>
@@ -143,7 +153,7 @@ export default function AddTaskDialog() {
 	);
 }
 
-type FormData = z.infer<typeof taskCreateBody>;
+type FormData = z.infer<typeof taskCreateMutationRequestSchema>;
 
 interface UseAddTaskProps {
 	onSuccess?: () => void;
@@ -152,7 +162,7 @@ interface UseAddTaskProps {
 export function useAddTask({ onSuccess }: UseAddTaskProps = {}) {
 	const queryClient = useQueryClient();
 	const form = useForm<FormData>({
-		resolver: zodResolver(taskCreateBody),
+		resolver: zodResolver(taskCreateMutationRequestSchema),
 		defaultValues: {
 			title: "Water the flowers",
 			description: "",
@@ -171,7 +181,7 @@ export function useAddTask({ onSuccess }: UseAddTaskProps = {}) {
 			},
 			{
 				onSuccess: () => {
-					queryClient.invalidateQueries({ queryKey: getTasksQueryKey() });
+					queryClient.invalidateQueries({ queryKey: tasksQueryKey() });
 					onSuccess?.();
 					form.reset();
 				},

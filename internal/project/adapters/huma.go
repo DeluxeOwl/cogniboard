@@ -60,13 +60,28 @@ func handleError(err error) error {
 	return nil
 }
 
-func (h *Huma) createTask(ctx context.Context, input *struct{ Body project.InCreateTaskDTO }) (*struct{}, error) {
-	err := h.app.Commands.CreateTask.Handle(ctx, commands.CreateTask{
-		Title:        input.Body.Title,
-		Description:  input.Body.Description,
-		DueDate:      input.Body.DueDate,
-		AssigneeName: input.Body.AssigneeName,
-	})
+func (h *Huma) createTask(ctx context.Context, input *struct {
+	RawBody huma.MultipartFormFiles[project.InCreateTaskDTO]
+}) (*struct{}, error) {
+	data := input.RawBody.Data()
+
+	cmd := commands.CreateTask{
+		Title: data.Title,
+	}
+
+	if !data.DueDate.IsZero() {
+		cmd.DueDate = &data.DueDate
+	}
+
+	if data.AssigneeName != "" {
+		cmd.AssigneeName = &data.AssigneeName
+	}
+
+	if data.Description != "" {
+		cmd.Description = &data.Description
+	}
+
+	err := h.app.Commands.CreateTask.Handle(ctx, cmd)
 
 	return nil, handleError(err)
 }

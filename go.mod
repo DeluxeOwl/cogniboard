@@ -3,7 +3,7 @@ module github.com/DeluxeOwl/cogniboard
 go 1.23.4
 
 require (
-	github.com/danielgtaylor/huma/v2 v2.28.0
+	github.com/danielgtaylor/huma/v2 v2.28.1-0.20250204010314-f9ffb6a65f98
 	github.com/docker/go-connections v0.5.0
 	github.com/golang-cz/devslog v0.0.11
 	github.com/google/uuid v1.6.0
