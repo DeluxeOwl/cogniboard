@@ -61,19 +61,52 @@ type InChangeTaskStatusDTO struct {
 
 // Out DTOs - for output adapters: e.g. postgres
 
+func FileToOutFileDTO(file *File) OutFileDTO {
+	return OutFileDTO{
+		Name:       file.Name,
+		Size:       file.Size,
+		MimeType:   file.MimeType,
+		UploadedAt: file.UploadedAt,
+	}
+}
+
+func FileFromOutFileDTO(dto *OutFileDTO) *File {
+	return &File{
+		Name:       dto.Name,
+		Size:       dto.Size,
+		MimeType:   dto.MimeType,
+		UploadedAt: dto.UploadedAt,
+	}
+}
+
+type OutFileDTO struct {
+	Name       string    `db:"name"`
+	Size       int64     `db:"size"`
+	MimeType   string    `db:"mime_type"`
+	UploadedAt time.Time `db:"uploaded_at"`
+}
+
 type OutTaskDTO struct {
-	ID           string     `db:"id"`
-	Title        string     `db:"title"`
-	Description  *string    `db:"description"`
-	DueDate      *time.Time `db:"due_date"`
-	AssigneeName *string    `db:"assignee"`
-	CreatedAt    time.Time  `db:"created_at"`
-	UpdatedAt    time.Time  `db:"updated_at"`
-	CompletedAt  *time.Time `db:"completed_at"`
-	Status       string     `db:"status"`
+	ID           string       `db:"id"`
+	Title        string       `db:"title"`
+	Description  *string      `db:"description"`
+	DueDate      *time.Time   `db:"due_date"`
+	AssigneeName *string      `db:"assignee"`
+	CreatedAt    time.Time    `db:"created_at"`
+	UpdatedAt    time.Time    `db:"updated_at"`
+	CompletedAt  *time.Time   `db:"completed_at"`
+	Status       string       `db:"status"`
+	Files        []OutFileDTO `db:"-"` // Using db:"-" as files will be loaded separately
 }
 
 func ToOutTaskDTO(t *Task) *OutTaskDTO {
+	taskFiles := t.Files()
+	outFiles := make([]OutFileDTO, len(taskFiles))
+
+	for i, file := range taskFiles {
+		outFiles[i] = FileToOutFileDTO(&file)
+	}
+
 	return &OutTaskDTO{
 		ID:           string(t.id),
 		Title:        t.title,
@@ -84,6 +117,7 @@ func ToOutTaskDTO(t *Task) *OutTaskDTO {
 		UpdatedAt:    t.updatedAt,
 		CompletedAt:  t.completedAt,
 		Status:       string(t.status),
+		Files:        outFiles,
 	}
 }
 
@@ -97,6 +131,11 @@ func FromOutTaskDTO(t *OutTaskDTO) (*Task, error) {
 	task.updatedAt = t.UpdatedAt
 	task.completedAt = t.CompletedAt
 	task.status = TaskStatus(t.Status)
+
+	for _, fileDTO := range t.Files {
+		file := FileFromOutFileDTO(&fileDTO)
+		task.files = append(task.files, *file)
+	}
 
 	return task, nil
 }

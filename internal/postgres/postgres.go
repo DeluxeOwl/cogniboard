@@ -22,6 +22,20 @@ CREATE TABLE IF NOT EXISTS tasks (
     completed_at TIMESTAMP WITH TIME ZONE,
     status VARCHAR(20) NOT NULL
 );
+`, `
+CREATE TABLE IF NOT EXISTS files (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    size BIGINT NOT NULL,
+    mime_type VARCHAR(127) NOT NULL,
+    uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+`, `
+CREATE TABLE IF NOT EXISTS task_files (
+    task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+    file_id UUID REFERENCES files(id) ON DELETE CASCADE,
+    PRIMARY KEY (task_id, file_id)
+);
 `}
 
 // Very primitive support for migrations for the quick demo - don't use in production

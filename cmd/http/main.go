@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/DeluxeOwl/cogniboard/internal/postgres"
+	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/adapters"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
 	"github.com/danielgtaylor/huma/v2"
@@ -31,6 +33,7 @@ type Options struct {
 	PostgresDSN string `help:"The postgres connection string"`
 	Host        string `help:"The host:port to listen on" default:"127.0.0.1:8888"`
 	Env         string `help:"The environment to run in" default:"dev"`
+	FileDir     string `help:"Directory for storing task files" default:"./cogniboardfiles"`
 }
 
 func main() {
@@ -40,12 +43,17 @@ func main() {
 	}
 
 	litter.Config.Compact = true
+
+	ctx := context.Background()
+
 	cli := humacli.New(func(hooks humacli.Hooks, options *Options) {
 		e := setupEcho()
 		api := setupAPI(e, options.Host)
 		logger := setupLogger(options.Env)
+
 		app := setupApplication(options.PostgresDSN, logger)
-		setupHTTPHandlers(api, app)
+		fileStorage := setupFileStorage(ctx, options.FileDir)
+		setupHTTPHandlers(api, app, fileStorage)
 
 		hooks.OnStart(func() {
 			logger.Info("Server started", "host", options.Host)
@@ -126,8 +134,21 @@ func setupApplication(dsn string, logger *slog.Logger) *app.Application {
 	return app
 }
 
-func setupHTTPHandlers(api huma.API, app *app.Application) {
-	projectHTTP := adapters.NewHuma(api, app)
+func setupFileStorage(ctx context.Context, fileDir string) project.FileStorage {
+	// Create the file storage directory if it doesn't exist
+	if err := os.MkdirAll(fileDir, 0755); err != nil {
+		panic(fmt.Errorf("failed to create file storage directory: %w", err))
+	}
+
+	fileStorage, err := adapters.NewFileStorage(ctx, fileDir)
+	if err != nil {
+		panic(err)
+	}
+	return fileStorage
+}
+
+func setupHTTPHandlers(api huma.API, app *app.Application, fileStorage project.FileStorage) {
+	projectHTTP := adapters.NewHuma(api, app, fileStorage)
 	projectHTTP.Register()
 }
 

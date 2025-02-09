@@ -2,7 +2,9 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
@@ -12,13 +14,14 @@ import (
 
 // Huma handles HTTP requests using the huma framework
 type Huma struct {
-	api huma.API
-	app *app.Application
+	api         huma.API
+	app         *app.Application
+	fileStorage project.FileStorage
 }
 
 // NewHuma creates a new huma HTTP server
-func NewHuma(api huma.API, app *app.Application) *Huma {
-	return &Huma{api: api, app: app}
+func NewHuma(api huma.API, app *app.Application, fileStorage project.FileStorage) *Huma {
+	return &Huma{api: api, app: app, fileStorage: fileStorage}
 }
 
 // Register registers all HTTP routes with huma
@@ -68,9 +71,16 @@ func handleError(err error) error {
 func (h *Huma) createTask(ctx context.Context, input *struct {
 	RawBody huma.MultipartFormFiles[project.InCreateTaskDTO]
 }) (*struct{}, error) {
+	taskID, err := project.NewTaskID()
+	if err != nil {
+		return nil, err
+	}
+
 	data := input.RawBody.Data()
 
-	cmd := commands.CreateTask{}
+	cmd := commands.CreateTask{
+		TaskID: taskID,
+	}
 
 	if data.Title != "" {
 		cmd.Title = data.Title
@@ -88,7 +98,39 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 		cmd.Description = &data.Description
 	}
 
-	err := h.app.Commands.CreateTask.Handle(ctx, cmd)
+	err = h.app.Commands.CreateTask.Handle(ctx, cmd)
+	if err != nil {
+		return nil, fmt.Errorf("task create: %w", err)
+	}
+
+	var domainFiles []project.File
+	now := time.Now()
+	for _, files := range input.RawBody.Form.File {
+		for _, file := range files {
+			filename := file.Filename
+			body, err := file.Open()
+			if err != nil {
+				return nil, fmt.Errorf("read file %s: %w", filename, err)
+			}
+
+			err = h.fileStorage.Store(ctx, taskID, filename, body)
+			if err != nil {
+				return nil, fmt.Errorf("store file %s: %w", filename, err)
+			}
+
+			domainFiles = append(domainFiles, project.File{
+				Name:       filename,
+				Size:       file.Size,
+				MimeType:   file.Header.Get("Content-Type"),
+				UploadedAt: now,
+			})
+		}
+	}
+
+	err = h.app.Commands.AttachFilesToTask.Handle(ctx, commands.AttachFilesToTask{
+		TaskID: taskID,
+		Files:  domainFiles,
+	})
 
 	return nil, handleError(err)
 }

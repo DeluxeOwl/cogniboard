@@ -29,6 +29,57 @@ func NewPostgresTaskRepository(db *sqlx.DB) (*PostgresTaskRepository, error) {
 	return repo, nil
 }
 
+func (r *PostgresTaskRepository) AddFiles(ctx context.Context, taskID project.TaskID, files []project.File) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// First check if the task exists
+	var exists bool
+	err = tx.GetContext(ctx, &exists, `SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1)`, string(taskID))
+	if err != nil {
+		return fmt.Errorf("check task existence: %w", err)
+	}
+	if !exists {
+		return fmt.Errorf("task not found: %w", sql.ErrNoRows)
+	}
+
+	// Insert files and create relationships
+	for _, file := range files {
+		// Insert file metadata
+		fileID, err := project.NewTaskID() // Reuse TaskID type as it's also a UUID
+		if err != nil {
+			return fmt.Errorf("generate file ID: %w", err)
+		}
+		_, err = tx.ExecContext(ctx,
+			`INSERT INTO files (id, name, size, mime_type, uploaded_at)
+			VALUES ($1, $2, $3, $4, $5)`,
+			string(fileID), file.Name, file.Size, file.MimeType, file.UploadedAt,
+		)
+		if err != nil {
+			return fmt.Errorf("insert file: %w", err)
+		}
+
+		// Create task-file relationship
+		_, err = tx.ExecContext(ctx,
+			`INSERT INTO task_files (task_id, file_id)
+			VALUES ($1, $2)`,
+			string(taskID), string(fileID),
+		)
+		if err != nil {
+			return fmt.Errorf("create task-file relationship: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return nil
+}
+
 func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task) error {
 	dto := project.ToOutTaskDTO(task)
 

@@ -15,6 +15,7 @@ type TaskRepository interface {
 	GetByID(ctx context.Context, id TaskID) (*Task, error)
 	UpdateTask(ctx context.Context, id TaskID, updateFn func(t *Task) (*Task, error)) error
 	AllTasks(ctx context.Context) ([]Task, error)
+	AddFiles(ctx context.Context, taskID TaskID, files []File) error
 }
 
 type TaskID string
@@ -38,6 +39,7 @@ type Task struct {
 	updatedAt   time.Time
 	completedAt *time.Time
 	status      TaskStatus
+	files       []File
 }
 
 func NewTaskID() (TaskID, error) {
@@ -82,8 +84,18 @@ func NewTask(id TaskID, title string, description *string, dueDate *time.Time, a
 		title:       title,
 		description: description,
 		status:      TaskStatusPending,
+		files:       make([]File, 0),
 	}
 	return task, nil
+}
+
+func (t *Task) AddFile(file File) {
+	t.files = append(t.files, file)
+	t.updatedAt = time.Now()
+}
+
+func (t *Task) Files() []File {
+	return t.files
 }
 
 func (t *Task) Edit(title *string, description *string, dueDate *time.Time, assigneeName *string, status *TaskStatus) error {
@@ -144,6 +156,7 @@ type TaskSnapshot struct {
 	UpdatedAt   time.Time
 	CompletedAt *time.Time
 	Status      TaskStatus
+	Files       []File
 }
 
 // Should only be used for testing
@@ -158,5 +171,6 @@ func (t *Task) GetSnapshot() *TaskSnapshot {
 		UpdatedAt:   t.updatedAt,
 		CompletedAt: t.completedAt,
 		Status:      t.status,
+		Files:       t.files,
 	}
 }

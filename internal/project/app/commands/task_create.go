@@ -10,6 +10,7 @@ import (
 )
 
 type CreateTask struct {
+	TaskID       project.TaskID
 	Title        string
 	Description  *string
 	DueDate      *time.Time
@@ -30,12 +31,7 @@ func NewCreateTaskHandler(repo project.TaskRepository, logger *slog.Logger) Crea
 }
 
 func (h *createTaskHandler) Handle(ctx context.Context, cmd CreateTask) error {
-	taskID, err := project.NewTaskID()
-	if err != nil {
-		return err
-	}
-
-	task, err := project.NewTask(taskID, cmd.Title, cmd.Description, cmd.DueDate, cmd.AssigneeName)
+	task, err := project.NewTask(cmd.TaskID, cmd.Title, cmd.Description, cmd.DueDate, cmd.AssigneeName)
 	if err != nil {
 		return err
 	}

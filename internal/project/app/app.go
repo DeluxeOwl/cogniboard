@@ -15,9 +15,10 @@ type Application struct {
 }
 
 type Commands struct {
-	CreateTask       commands.CreateTaskHandler
-	ChangeTaskStatus commands.ChangeTaskStatusHandler
-	EditTask         commands.EditTaskHandler
+	CreateTask        commands.CreateTaskHandler
+	ChangeTaskStatus  commands.ChangeTaskStatusHandler
+	EditTask          commands.EditTaskHandler
+	AttachFilesToTask commands.AttachFilesToTaskHandler
 }
 
 type Queries struct {
@@ -35,9 +36,10 @@ func New(repo project.TaskRepository, logger *slog.Logger) (*Application, error)
 
 	return &Application{
 		Commands: Commands{
-			CreateTask:       commands.NewCreateTaskHandler(repo, logger),
-			ChangeTaskStatus: commands.NewChangeStatusHandler(repo, logger),
-			EditTask:         commands.NewEditTaskHandler(repo, logger),
+			CreateTask:        commands.NewCreateTaskHandler(repo, logger),
+			ChangeTaskStatus:  commands.NewChangeStatusHandler(repo, logger),
+			EditTask:          commands.NewEditTaskHandler(repo, logger),
+			AttachFilesToTask: commands.NewAttachFilesToTaskHandler(repo, logger),
 		},
 		Queries: Queries{
 			AllTasks: queries.NewAllTasksHandler(repo, logger),
