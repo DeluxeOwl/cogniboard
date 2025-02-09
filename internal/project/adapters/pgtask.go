@@ -83,7 +83,6 @@ func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID)
 		Where(task.IDEQ(string(id))).
 		WithFiles().
 		First(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +125,6 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 			SetStatus(task.Status(snap.Status)).
 			SetUpdatedAt(snap.UpdatedAt).
 			Save(ctx)
-
 		if err != nil {
 			return fmt.Errorf("save task: %w", err)
 		}

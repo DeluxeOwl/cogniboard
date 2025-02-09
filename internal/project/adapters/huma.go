@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -14,14 +15,13 @@ import (
 
 // Huma handles HTTP requests using the huma framework
 type Huma struct {
-	api         huma.API
-	app         *app.Application
-	fileStorage project.FileStorage
+	api huma.API
+	app *app.Application
 }
 
 // NewHuma creates a new huma HTTP server
-func NewHuma(api huma.API, app *app.Application, fileStorage project.FileStorage) *Huma {
-	return &Huma{api: api, app: app, fileStorage: fileStorage}
+func NewHuma(api huma.API, app *app.Application) *Huma {
+	return &Huma{api: api, app: app}
 }
 
 // Register registers all HTTP routes with huma
@@ -109,39 +109,47 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 		cmd.Description = &data.Description
 	}
 
+	filesToUpload, err := h.prepareFilesForUpload(input.RawBody.Form.File)
+	if err != nil {
+		return nil, handleError(err)
+	}
+
 	err = h.app.Commands.CreateTask.Handle(ctx, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("task create: %w", err)
 	}
 
-	var domainFiles []project.File
-	for _, files := range input.RawBody.Form.File {
+	return nil, handleError(h.app.Commands.
+		AttachFilesToTask.
+		Handle(ctx, commands.AttachFilesToTask{
+			TaskID: taskID,
+			Files:  filesToUpload,
+		}))
+}
+
+func (h *Huma) prepareFilesForUpload(rawFiles map[string][]*multipart.FileHeader) ([]commands.FileToUpload, error) {
+	var filesToUpload []commands.FileToUpload
+	for _, files := range rawFiles {
 		for _, file := range files {
 			filename := file.Filename
-			body, err := file.Open()
-			if err != nil {
-				return nil, fmt.Errorf("read file %s: %w", filename, err)
-			}
 
-			err = h.fileStorage.Store(ctx, taskID, filename, body)
+			fileReader, err := file.Open()
 			if err != nil {
-				return nil, fmt.Errorf("store file %s: %w", filename, err)
+				return nil, fmt.Errorf("open file %s: %w", filename, err)
 			}
 
 			domainFile, err := project.NewFile(filename, file.Size)
 			if err != nil {
 				return nil, fmt.Errorf("create file %s: %w", filename, err)
 			}
-			domainFiles = append(domainFiles, domainFile)
+
+			filesToUpload = append(filesToUpload, commands.FileToUpload{
+				Metadata: domainFile,
+				Content:  fileReader,
+			})
 		}
 	}
-
-	err = h.app.Commands.AttachFilesToTask.Handle(ctx, commands.AttachFilesToTask{
-		TaskID: taskID,
-		Files:  domainFiles,
-	})
-
-	return nil, handleError(err)
+	return filesToUpload, nil
 }
 
 type ListTasks struct {

@@ -51,9 +51,9 @@ func main() {
 		api := setupAPI(e, options.Host)
 		logger := setupLogger(options.Env)
 
-		app := setupApplication(ctx, options.PostgresDSN, logger)
 		fileStorage := setupFileStorage(ctx, options.FileDir)
-		setupHTTPHandlers(api, app, fileStorage)
+		app := setupApplication(ctx, options.PostgresDSN, logger, fileStorage)
+		setupHTTPHandlers(api, app)
 
 		hooks.OnStart(func() {
 			logger.Info("Server started", "host", options.Host)
@@ -68,7 +68,7 @@ func main() {
 func setupEcho() *echo.Echo {
 	e := echo.New()
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:5173"}, //TODO: hardcoded
+		AllowOrigins: []string{"http://localhost:5173"}, // TODO: hardcoded
 	}))
 	v1 := e.Group("/" + APIVersion)
 
@@ -115,7 +115,7 @@ func setupLogger(env string) *slog.Logger {
 	return slog.New(handler)
 }
 
-func setupApplication(ctx context.Context, dsn string, logger *slog.Logger) *app.Application {
+func setupApplication(ctx context.Context, dsn string, logger *slog.Logger, fileStorage project.FileStorage) *app.Application {
 	db, err := postgres.NewPostgresWithMigrate(ctx, dsn)
 	if err != nil {
 		panic(err)
@@ -126,7 +126,7 @@ func setupApplication(ctx context.Context, dsn string, logger *slog.Logger) *app
 		panic(err)
 	}
 
-	app, err := app.New(repo, logger)
+	app, err := app.New(repo, logger, fileStorage)
 	if err != nil {
 		panic(err)
 	}
@@ -136,7 +136,7 @@ func setupApplication(ctx context.Context, dsn string, logger *slog.Logger) *app
 
 func setupFileStorage(ctx context.Context, fileDir string) project.FileStorage {
 	// Create the file storage directory if it doesn't exist
-	if err := os.MkdirAll(fileDir, 0755); err != nil {
+	if err := os.MkdirAll(fileDir, 0o755); err != nil {
 		panic(fmt.Errorf("failed to create file storage directory: %w", err))
 	}
 
@@ -147,8 +147,8 @@ func setupFileStorage(ctx context.Context, fileDir string) project.FileStorage {
 	return fileStorage
 }
 
-func setupHTTPHandlers(api huma.API, app *app.Application, fileStorage project.FileStorage) {
-	projectHTTP := adapters.NewHuma(api, app, fileStorage)
+func setupHTTPHandlers(api huma.API, app *app.Application) {
+	projectHTTP := adapters.NewHuma(api, app)
 	projectHTTP.Register()
 }
 
@@ -158,7 +158,7 @@ func saveOpenAPISpec(api huma.API) {
 		panic(err)
 	}
 	filePath := filepath.Join("openapi3.yaml")
-	err = os.WriteFile(filePath, openapiSpec, 0644)
+	err = os.WriteFile(filePath, openapiSpec, 0o644)
 	if err != nil {
 		panic(err)
 	}

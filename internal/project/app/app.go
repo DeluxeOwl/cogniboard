@@ -26,12 +26,15 @@ type Queries struct {
 }
 
 // Validation for the arguments injected into command & queries happens here
-func New(repo project.TaskRepository, logger *slog.Logger) (*Application, error) {
+func New(repo project.TaskRepository, logger *slog.Logger, fileStorage project.FileStorage) (*Application, error) {
 	if repo == nil {
 		return nil, errors.New("repo cannot be nil")
 	}
 	if logger == nil {
 		return nil, errors.New("logger cannot be nil")
+	}
+	if fileStorage == nil {
+		return nil, errors.New("file storage cannot be nil")
 	}
 
 	return &Application{
@@ -39,7 +42,7 @@ func New(repo project.TaskRepository, logger *slog.Logger) (*Application, error)
 			CreateTask:        commands.NewCreateTaskHandler(repo, logger),
 			ChangeTaskStatus:  commands.NewChangeStatusHandler(repo, logger),
 			EditTask:          commands.NewEditTaskHandler(repo, logger),
-			AttachFilesToTask: commands.NewAttachFilesToTaskHandler(repo, logger),
+			AttachFilesToTask: commands.NewAttachFilesToTaskHandler(repo, logger, fileStorage),
 		},
 		Queries: Queries{
 			AllTasks: queries.NewAllTasksHandler(repo, logger),

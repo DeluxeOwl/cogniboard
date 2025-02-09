@@ -26,6 +26,7 @@ func NewAllTasksHandler(repo AllTasksReadModel, logger *slog.Logger) AllTasksHan
 		logger,
 	)
 }
+
 func (h *allTasksHandler) Handle(ctx context.Context, query AllTasks) ([]project.Task, error) {
 	return h.tasks.AllTasks(ctx)
 }
