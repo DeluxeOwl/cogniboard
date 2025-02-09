@@ -68,33 +68,6 @@ components:
       required:
         - status
       type: object
-    InEditTaskDTO:
-      additionalProperties: false
-      properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/InEditTaskDTO.json
-          format: uri
-          readOnly: true
-          type: string
-        assignee_name:
-          description: Name of the person to assign the task to
-          type: string
-        description:
-          description: Task's description
-          type: string
-        due_date:
-          description: Task's due date
-          format: date-time
-          type: string
-        status:
-          description: Task's status
-          type: string
-        title:
-          description: Task's title
-          maxLength: 50
-          type: string
-      type: object
     InTaskDTO:
       additionalProperties: false
       properties:
@@ -239,10 +212,45 @@ paths:
             type: string
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
+            encoding:
+              assignee_name:
+                contentType: text/plain
+              description:
+                contentType: text/plain
+              due_date:
+                contentType: text/plain
+              files:
+                contentType: application/octet-stream
+              title:
+                contentType: text/plain
             schema:
-              $ref: "#/components/schemas/InEditTaskDTO"
-        required: true
+              properties:
+                assignee_name:
+                  description: Task's asignee (if any)
+                  type: string
+                description:
+                  description: Task's description
+                  type: string
+                due_date:
+                  description: Task's due date (if any)
+                  format: date-time
+                  type: string
+                files:
+                  items:
+                    contentEncoding: binary
+                    contentMediaType: application/octet-stream
+                    format: binary
+                    type: string
+                  type: array
+                title:
+                  description: Task's name
+                  maxLength: 50
+                  minLength: 1
+                  type: string
+              required:
+                - title
+              type: object
       responses:
         "204":
           description: No Content

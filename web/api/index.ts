@@ -6,7 +6,6 @@ export type { TasksSuspenseQueryKey } from './hooks/useTasksSuspense.ts'
 export type { ErrorDetail } from './types/ErrorDetail.ts'
 export type { ErrorModel } from './types/ErrorModel.ts'
 export type { InChangeTaskStatusDTO } from './types/InChangeTaskStatusDTO.ts'
-export type { InEditTaskDTO } from './types/InEditTaskDTO.ts'
 export type { InTaskDTO } from './types/InTaskDTO.ts'
 export type { InTasksDTO } from './types/InTasksDTO.ts'
 export type {
@@ -28,7 +27,6 @@ export { tasksSuspenseQueryKey, tasksSuspense, tasksSuspenseQueryOptions, useTas
 export { errorDetailSchema } from './zod/errorDetailSchema.ts'
 export { errorModelSchema } from './zod/errorModelSchema.ts'
 export { inChangeTaskStatusDTOSchema } from './zod/inChangeTaskStatusDTOSchema.ts'
-export { inEditTaskDTOSchema } from './zod/inEditTaskDTOSchema.ts'
 export { inTaskDTOSchema } from './zod/inTaskDTOSchema.ts'
 export { inTasksDTOSchema } from './zod/inTasksDTOSchema.ts'
 export {

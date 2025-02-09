@@ -16,12 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
-import {
-	inTaskDTOSchema,
-	type taskCreate204Schema,
-	taskCreateMutationRequestSchema,
-	tasksQueryKey,
-} from "@/api";
+import { taskCreateMutationRequestSchema, tasksQueryKey } from "@/api";
 import { useTaskCreate } from "@/api/hooks/useTaskCreate";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, LucidePlus } from "lucide-react";

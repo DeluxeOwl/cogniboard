@@ -14,16 +14,26 @@ export type TaskEditMutationKey = ReturnType<typeof taskEditMutationKey>
  */
 export async function taskEdit(
   taskId: TaskEditPathParams['taskId'],
-  data?: TaskEditMutationRequest,
+  data: TaskEditMutationRequest,
   config: Partial<RequestConfig<TaskEditMutationRequest>> & { client?: typeof client } = {},
 ) {
   const { client: request = client, ...requestConfig } = config
 
+  const formData = new FormData()
+  if (data) {
+    Object.keys(data).forEach((key) => {
+      const value = data[key as keyof typeof data]
+      if (typeof key === 'string' && (typeof value === 'string' || value instanceof Blob)) {
+        formData.append(key, value)
+      }
+    })
+  }
   const res = await request<TaskEditMutationResponse, ResponseErrorConfig<Error>, TaskEditMutationRequest>({
     method: 'POST',
     url: `/tasks/${taskId}/edit`,
     baseURL: 'http://127.0.0.1:8888/v1/api',
-    data,
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data', ...requestConfig.headers },
     ...requestConfig,
   })
   return res.data
@@ -35,18 +45,14 @@ export async function taskEdit(
  */
 export function useTaskEdit(
   options: {
-    mutation?: UseMutationOptions<
-      TaskEditMutationResponse,
-      ResponseErrorConfig<Error>,
-      { taskId: TaskEditPathParams['taskId']; data?: TaskEditMutationRequest }
-    >
+    mutation?: UseMutationOptions<TaskEditMutationResponse, ResponseErrorConfig<Error>, { taskId: TaskEditPathParams['taskId']; data: TaskEditMutationRequest }>
     client?: Partial<RequestConfig<TaskEditMutationRequest>> & { client?: typeof client }
   } = {},
 ) {
   const { mutation: mutationOptions, client: config = {} } = options ?? {}
   const mutationKey = mutationOptions?.mutationKey ?? taskEditMutationKey()
 
-  return useMutation<TaskEditMutationResponse, ResponseErrorConfig<Error>, { taskId: TaskEditPathParams['taskId']; data?: TaskEditMutationRequest }>({
+  return useMutation<TaskEditMutationResponse, ResponseErrorConfig<Error>, { taskId: TaskEditPathParams['taskId']; data: TaskEditMutationRequest }>({
     mutationFn: async ({ taskId, data }) => {
       return taskEdit(taskId, data, config)
     },

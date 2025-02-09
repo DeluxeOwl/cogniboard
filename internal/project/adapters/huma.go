@@ -23,11 +23,15 @@ func NewHuma(api huma.API, app *app.Application) *Huma {
 
 // Register registers all HTTP routes with huma
 func (h *Huma) Register() {
+
+	var maxBodyBytes int64 = 50 * 1024 * 1024
+
 	huma.Register(h.api, huma.Operation{
-		OperationID: "task-create",
-		Method:      http.MethodPost,
-		Path:        "/tasks/create",
-		Summary:     "Create a task",
+		OperationID:  "task-create",
+		Method:       http.MethodPost,
+		Path:         "/tasks/create",
+		Summary:      "Create a task",
+		MaxBodyBytes: maxBodyBytes,
 	}, h.createTask)
 
 	huma.Register(h.api, huma.Operation{
@@ -38,10 +42,11 @@ func (h *Huma) Register() {
 	}, h.getTasks)
 
 	huma.Register(h.api, huma.Operation{
-		OperationID: "task-edit",
-		Method:      http.MethodPost,
-		Path:        "/tasks/{taskId}/edit",
-		Summary:     "Edit a task",
+		OperationID:  "task-edit",
+		Method:       http.MethodPost,
+		Path:         "/tasks/{taskId}/edit",
+		Summary:      "Edit a task",
+		MaxBodyBytes: maxBodyBytes,
 	}, h.editTask)
 
 	huma.Register(h.api, huma.Operation{
@@ -65,8 +70,10 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 }) (*struct{}, error) {
 	data := input.RawBody.Data()
 
-	cmd := commands.CreateTask{
-		Title: data.Title,
+	cmd := commands.CreateTask{}
+
+	if data.Title != "" {
+		cmd.Title = data.Title
 	}
 
 	if !data.DueDate.IsZero() {
@@ -103,17 +110,29 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body pro
 }
 
 func (h *Huma) editTask(ctx context.Context, input *struct {
-	TaskID string                `path:"taskId"`
-	Body   project.InEditTaskDTO `json:"body"`
+	TaskID  string `path:"taskId"`
+	RawBody huma.MultipartFormFiles[project.InCreateTaskDTO]
 }) (*struct{}, error) {
-	err := h.app.Commands.EditTask.Handle(ctx, commands.EditTask{
-		TaskID:       input.TaskID,
-		Title:        input.Body.Title,
-		Description:  input.Body.Description,
-		DueDate:      input.Body.DueDate,
-		AssigneeName: input.Body.AssigneeName,
-		Status:       input.Body.Status,
-	})
+	data := input.RawBody.Data()
+
+	cmd := commands.EditTask{
+		TaskID: input.TaskID,
+		Title:  &data.Title, // validated from form
+	}
+
+	if !data.DueDate.IsZero() {
+		cmd.DueDate = &data.DueDate
+	}
+
+	if data.AssigneeName != "" {
+		cmd.AssigneeName = &data.AssigneeName
+	}
+
+	if data.Description != "" {
+		cmd.Description = &data.Description
+	}
+
+	err := h.app.Commands.EditTask.Handle(ctx, cmd)
 
 	return nil, handleError(err)
 }

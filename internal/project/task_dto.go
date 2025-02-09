@@ -47,11 +47,12 @@ func ToInTaskDTO(task *Task) InTaskDTO {
 }
 
 type InEditTaskDTO struct {
-	Title        *string    `json:"title,omitempty" doc:"Task's title" maxLength:"50"`
-	Description  *string    `json:"description,omitempty" doc:"Task's description"`
-	DueDate      *time.Time `json:"due_date,omitempty" doc:"Task's due date" format:"date-time"`
-	AssigneeName *string    `json:"assignee_name,omitempty" doc:"Name of the person to assign the task to"`
-	Status       *string    `json:"status,omitempty" doc:"Task's status"`
+	Title        string    `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
+	Description  string    `form:"description" doc:"Task's description"`
+	DueDate      time.Time `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
+	AssigneeName string    `form:"assignee_name" doc:"Task's asignee (if any)"`
+
+	Files []huma.FormFile `form:"files"`
 }
 
 type InChangeTaskStatusDTO struct {

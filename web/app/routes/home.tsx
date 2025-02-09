@@ -108,8 +108,10 @@ const Home = () => {
 										onClick={() => handleTaskSelect(feature)}
 									>
 										<div className="flex items-start justify-between gap-2">
-											<div className="flex flex-col gap-1">
-												<p className="m-0 flex-1 font-bold text-sm">{feature.title}</p>
+											<div className="flex flex-col gap-1 min-w-0 w-full">
+												<p className="m-0 flex-1 font-bold text-sm truncate overflow-hidden">
+													{feature.title}
+												</p>
 												<p className="m-0 text-muted-foreground text-xs">{feature.description}</p>
 												{feature.assignee && <p>Assigned to: {feature.assignee}</p>}
 											</div>

@@ -1,10 +1,4 @@
-import {
-	type InTaskDTO,
-	inEditTaskDTOSchema,
-	taskEditMutationRequestSchema,
-	tasksQueryKey,
-	useTaskEdit,
-} from "@/api";
+import { type InTaskDTO, taskEditMutationRequestSchema, tasksQueryKey, useTaskEdit } from "@/api";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -146,7 +140,7 @@ export default function EditTaskDialog({ task, open, onOpenChange }: EditTaskDia
 	);
 }
 
-type FormData = z.infer<typeof inEditTaskDTOSchema>;
+type FormData = z.infer<typeof taskEditMutationRequestSchema>;
 
 interface UseEditTaskProps {
 	task: InTaskDTO;
@@ -156,7 +150,7 @@ interface UseEditTaskProps {
 export function useEditTask({ task, onSuccess }: UseEditTaskProps) {
 	const queryClient = useQueryClient();
 	const form = useForm<FormData>({
-		resolver: zodResolver(inEditTaskDTOSchema),
+		resolver: zodResolver(taskEditMutationRequestSchema),
 		// Using values here keeps the form in sync with the props
 		values: {
 			title: task.title,
