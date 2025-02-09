@@ -25,6 +25,26 @@ interface EditTaskDialogProps {
 	onOpenChange: (open: boolean) => void;
 }
 
+function formatBytes(bytes: number) {
+	const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+
+	// Find the appropriate unit
+	let unitIndex = 0;
+	while (bytes >= 1024 && unitIndex < units.length - 1) {
+		bytes /= 1024;
+		unitIndex++;
+	}
+
+	// Format the number with Intl.NumberFormat
+	const formatted = new Intl.NumberFormat("en-US", {
+		style: "decimal",
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 2,
+	}).format(bytes);
+
+	return `${formatted} ${units[unitIndex]}`;
+}
+
 export default function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps) {
 	const id = useId();
 
@@ -101,6 +121,16 @@ export default function EditTaskDialog({ task, open, onOpenChange }: EditTaskDia
 								{errors.description && (
 									<p className="text-sm text-destructive">{errors.description.message}</p>
 								)}
+							</div>
+							<div className="space-y-2">
+								<Label>Uploaded files</Label>
+								<ul className="list-disc">
+									{task.files?.map((file) => (
+										<li>
+											{file.name} - {formatBytes(file.size)}
+										</li>
+									))}
+								</ul>
 							</div>
 						</form>
 						{mutation.error && (
