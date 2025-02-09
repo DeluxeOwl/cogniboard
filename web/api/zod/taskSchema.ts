@@ -1,13 +1,13 @@
-import { fileDTOSchema } from './fileDTOSchema.ts'
+import { fileSchema } from './fileSchema.ts'
 import { z } from 'zod'
 
-export const taskDTOSchema = z.object({
+export const taskSchema = z.object({
   asignee: z.string().nullable(),
   completed_at: z.string().datetime().nullable(),
   created_at: z.string().datetime(),
   description: z.string().nullable(),
   due_date: z.string().datetime().nullable(),
-  files: z.array(z.lazy(() => fileDTOSchema)).nullable(),
+  files: z.array(z.lazy(() => fileSchema)).nullable(),
   id: z.string(),
   status: z.string(),
   title: z.string(),

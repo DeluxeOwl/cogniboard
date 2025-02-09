@@ -1,4 +1,4 @@
-import type { TaskDTO } from './TaskDTO.ts'
+import type { Task } from './Task.ts'
 
 export type ListTasks = {
   /**
@@ -9,5 +9,5 @@ export type ListTasks = {
   /**
    * @type array
    */
-  tasks: TaskDTO[] | null
+  tasks: Task[] | null
 }

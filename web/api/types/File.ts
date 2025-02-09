@@ -1,4 +1,4 @@
-export type FileDTO = {
+export type File = {
   /**
    * @type string
    */

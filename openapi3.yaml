@@ -68,7 +68,7 @@ components:
           format: uri
           type: string
       type: object
-    FileDTO:
+    File:
       additionalProperties: false
       properties:
         id:
@@ -101,13 +101,13 @@ components:
           type: string
         tasks:
           items:
-            $ref: "#/components/schemas/TaskDTO"
+            $ref: "#/components/schemas/Task"
           nullable: true
           type: array
       required:
         - tasks
       type: object
-    TaskDTO:
+    Task:
       additionalProperties: false
       properties:
         asignee:
@@ -129,7 +129,7 @@ components:
           type: string
         files:
           items:
-            $ref: "#/components/schemas/FileDTO"
+            $ref: "#/components/schemas/File"
           nullable: true
           type: array
         id:

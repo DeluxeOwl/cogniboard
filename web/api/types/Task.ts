@@ -1,6 +1,6 @@
-import type { FileDTO } from './FileDTO.ts'
+import type { File } from './File.ts'
 
-export type TaskDTO = {
+export type Task = {
   /**
    * @type string
    */
@@ -24,7 +24,7 @@ export type TaskDTO = {
   /**
    * @type array
    */
-  files: FileDTO[] | null
+  files: File[] | null
   /**
    * @type string
    */

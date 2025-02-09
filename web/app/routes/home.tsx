@@ -1,4 +1,4 @@
-import { type TaskDTO, tasksQueryKey, useTaskChangeStatus, useTasks } from "@/api/index.ts";
+import { type Task, tasksQueryKey, useTaskChangeStatus, useTasks } from "@/api/index.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -13,7 +13,7 @@ import AddTaskDialog from "./project/task.add";
 import EditTaskDialog from "./project/task.edit";
 
 function useHome() {
-	const [selectedTask, setSelectedTask] = useState<TaskDTO | null>(null);
+	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const { tasks, isLoading, isError, error, handleDragEnd } = useKanbanBoard();
 
@@ -22,7 +22,7 @@ function useHome() {
 
 	const errorMessage = hasError ? error.response?.data.message : "";
 
-	const handleTaskSelect = (task: TaskDTO) => {
+	const handleTaskSelect = (task: Task) => {
 		setSelectedTask(task);
 		setEditDialogOpen(true);
 	};
@@ -184,7 +184,7 @@ function useKanbanBoard() {
 		queryClient.setQueryData(queryKey, (old: DataType) => {
 			return {
 				$schema: old?.$schema,
-				tasks: old?.tasks?.map((task: TaskDTO) =>
+				tasks: old?.tasks?.map((task: Task) =>
 					task.id === taskId ? { ...task, status: newStatus } : task
 				),
 			};

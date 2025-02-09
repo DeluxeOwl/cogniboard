@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
@@ -66,8 +67,19 @@ func handleError(err error) error {
 	return nil
 }
 
+// In DTOs - for input adapters: e.g REST api
+
+// note: huma doesnt play well with struct embedding
+type CreateTask struct {
+	Title        string          `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
+	Description  string          `form:"description" doc:"Task's description"`
+	DueDate      time.Time       `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
+	AssigneeName string          `form:"assignee_name" doc:"Task's asignee (if any)"`
+	Files        []huma.FormFile `form:"files"`
+}
+
 func (h *Huma) createTask(ctx context.Context, input *struct {
-	RawBody huma.MultipartFormFiles[project.CreateTask]
+	RawBody huma.MultipartFormFiles[CreateTask]
 },
 ) (*struct{}, error) {
 	taskID, err := project.NewTaskID()
@@ -132,25 +144,45 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 	return nil, handleError(err)
 }
 
-func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body project.ListTasks }, error) {
+type ListTasks struct {
+	Tasks []Task `json:"tasks"`
+}
+type Task struct {
+	project.TaskSnapshot
+	Files []File `json:"files"`
+}
+
+type File struct {
+	project.FileSnapshot
+}
+
+func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body ListTasks }, error) {
 	tasks, err := h.app.Queries.AllTasks.Handle(ctx, struct{}{})
 	if err != nil {
 		return nil, huma.Error400BadRequest("couldn't get tasks", err)
 	}
 
-	dtos := make([]project.TaskDTO, len(tasks))
+	dtos := make([]Task, len(tasks))
 	for i, task := range tasks {
-		dtos[i] = project.ConvertTaskToDTO(&task)
+		dtos[i] = taskFrom(&task)
 	}
 
-	return &struct{ Body project.ListTasks }{
-		Body: project.ListTasks{Tasks: dtos},
+	return &struct{ Body ListTasks }{
+		Body: ListTasks{Tasks: dtos},
 	}, nil
+}
+
+type EditTask struct {
+	Title        string          `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
+	Description  string          `form:"description" doc:"Task's description"`
+	DueDate      time.Time       `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
+	AssigneeName string          `form:"assignee_name" doc:"Task's asignee (if any)"`
+	Files        []huma.FormFile `form:"files"`
 }
 
 func (h *Huma) editTask(ctx context.Context, input *struct {
 	TaskID  string `path:"taskId"`
-	RawBody huma.MultipartFormFiles[project.CreateTask]
+	RawBody huma.MultipartFormFiles[EditTask]
 },
 ) (*struct{}, error) {
 	data := input.RawBody.Data()
@@ -177,9 +209,13 @@ func (h *Huma) editTask(ctx context.Context, input *struct {
 	return nil, handleError(err)
 }
 
+type ChangeTaskStatus struct {
+	Status string `json:"status" doc:"New status for the task" minLength:"1"`
+}
+
 func (h *Huma) changeTaskStatus(ctx context.Context, input *struct {
-	TaskID string                   `path:"taskId"`
-	Body   project.ChangeTaskStatus `json:"body"`
+	TaskID string           `path:"taskId"`
+	Body   ChangeTaskStatus `json:"body"`
 },
 ) (*struct{}, error) {
 	err := h.app.Commands.ChangeTaskStatus.Handle(ctx, commands.ChangeTaskStatus{
@@ -188,4 +224,24 @@ func (h *Huma) changeTaskStatus(ctx context.Context, input *struct {
 	})
 
 	return nil, handleError(err)
+}
+
+func taskFrom(task *project.Task) Task {
+	snap := task.GetSnapshot()
+	dto := Task{
+		TaskSnapshot: *task.GetSnapshot(),
+		Files:        make([]File, len(snap.Files)),
+	}
+
+	for i := range snap.Files {
+		dto.Files[i] = fileFrom(&snap.Files[i])
+	}
+
+	return dto
+}
+
+func fileFrom(file *project.File) File {
+	return File{
+		file.GetSnapshot(),
+	}
 }
