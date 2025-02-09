@@ -156,6 +156,7 @@ function useKanbanBoard() {
 	const queryClient = useQueryClient();
 
 	const { data, isLoading, isError, error } = useTasks();
+	console.info(data);
 	const mutation = useTaskChangeStatus();
 
 	const handleDragEnd = (event: DragEndEvent) => {

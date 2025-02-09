@@ -93,13 +93,12 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task)
 }
 
 func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID) (*project.Task, error) {
-	var dto project.OutTaskDTO
-	err := r.db.GetContext(ctx, &dto,
+	var taskDTO project.OutTaskDTO
+	err := r.db.GetContext(ctx, &taskDTO,
 		`SELECT id, title, description, due_date, assignee, created_at, updated_at, completed_at, status
 		FROM tasks WHERE id = $1`,
 		string(id),
 	)
-
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("task not found: %w", err)
@@ -107,7 +106,30 @@ func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID)
 		return nil, fmt.Errorf("get task: %w", err)
 	}
 
-	return project.FromOutTaskDTO(&dto)
+	// Get associated files
+	var fileDTOs []project.OutFileDTO
+	err = r.db.SelectContext(ctx, &fileDTOs,
+		`SELECT f.id, f.name, f.size, f.mime_type, f.uploaded_at
+		FROM files f
+		JOIN task_files tf ON tf.file_id = f.id
+		WHERE tf.task_id = $1`,
+		string(id),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get task files: %w", err)
+	}
+
+	task, err := project.FromOutTaskDTO(&taskDTO)
+	if err != nil {
+		return nil, fmt.Errorf("convert to domain: %w", err)
+	}
+
+	// Add files to task
+	for _, fileDTO := range fileDTOs {
+		task.AddFile(*project.FileFromOutFileDTO(&fileDTO))
+	}
+
+	return task, nil
 }
 
 func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.TaskID, updateFn func(t *project.Task) (*project.Task, error)) error {
@@ -163,20 +185,39 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 }
 
 func (r *PostgresTaskRepository) AllTasks(ctx context.Context) ([]project.Task, error) {
-	var dtos []project.OutTaskDTO
-	err := r.db.SelectContext(ctx, &dtos,
+	var taskDTOs []project.OutTaskDTO
+	err := r.db.SelectContext(ctx, &taskDTOs,
 		`SELECT id, title, description, due_date, assignee, created_at, updated_at, completed_at, status
-		FROM tasks`)
+		FROM tasks`,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("select tasks: %w", err)
+		return nil, fmt.Errorf("get all tasks: %w", err)
 	}
 
-	tasks := []project.Task{}
-	for _, dto := range dtos {
-		task, err := project.FromOutTaskDTO(&dto)
+	tasks := make([]project.Task, 0, len(taskDTOs))
+	for _, taskDTO := range taskDTOs {
+		task, err := project.FromOutTaskDTO(&taskDTO)
 		if err != nil {
 			return nil, fmt.Errorf("convert task to domain: %w", err)
 		}
+
+		// Get files for each task
+		var fileDTOs []project.OutFileDTO
+		err = r.db.SelectContext(ctx, &fileDTOs,
+			`SELECT f.id, f.name, f.size, f.mime_type, f.uploaded_at
+			FROM files f
+			JOIN task_files tf ON tf.file_id = f.id
+			WHERE tf.task_id = $1`,
+			taskDTO.ID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("get task files: %w", err)
+		}
+
+		for _, fileDTO := range fileDTOs {
+			task.AddFile(*project.FileFromOutFileDTO(&fileDTO))
+		}
+
 		tasks = append(tasks, *task)
 	}
 

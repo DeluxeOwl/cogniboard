@@ -1,6 +1,7 @@
 export { errorDetailSchema } from './errorDetailSchema.ts'
 export { errorModelSchema } from './errorModelSchema.ts'
 export { inChangeTaskStatusDTOSchema } from './inChangeTaskStatusDTOSchema.ts'
+export { inFileDTOSchema } from './inFileDTOSchema.ts'
 export { inTaskDTOSchema } from './inTaskDTOSchema.ts'
 export { inTasksDTOSchema } from './inTasksDTOSchema.ts'
 export {

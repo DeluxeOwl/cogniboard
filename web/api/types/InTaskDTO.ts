@@ -1,3 +1,5 @@
+import type { InFileDTO } from './InFileDTO.ts'
+
 export type InTaskDTO = {
   /**
    * @type string
@@ -19,6 +21,10 @@ export type InTaskDTO = {
    * @type string, date-time
    */
   due_date: string | null
+  /**
+   * @type array
+   */
+  files: InFileDTO[] | null
   /**
    * @type string
    */

@@ -68,6 +68,25 @@ components:
       required:
         - status
       type: object
+    InFileDTO:
+      additionalProperties: false
+      properties:
+        mime_type:
+          type: string
+        name:
+          type: string
+        size:
+          format: int64
+          type: integer
+        uploaded_at:
+          format: date-time
+          type: string
+      required:
+        - name
+        - size
+        - mime_type
+        - uploaded_at
+      type: object
     InTaskDTO:
       additionalProperties: false
       properties:
@@ -88,6 +107,11 @@ components:
           format: date-time
           nullable: true
           type: string
+        files:
+          items:
+            $ref: "#/components/schemas/InFileDTO"
+          nullable: true
+          type: array
         id:
           type: string
         status:
@@ -107,6 +131,7 @@ components:
         - updated_at
         - completed_at
         - status
+        - files
       type: object
     InTasksDTO:
       additionalProperties: false

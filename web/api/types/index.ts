@@ -1,6 +1,7 @@
 export type { ErrorDetail } from './ErrorDetail.ts'
 export type { ErrorModel } from './ErrorModel.ts'
 export type { InChangeTaskStatusDTO } from './InChangeTaskStatusDTO.ts'
+export type { InFileDTO } from './InFileDTO.ts'
 export type { InTaskDTO } from './InTaskDTO.ts'
 export type { InTasksDTO } from './InTasksDTO.ts'
 export type {
