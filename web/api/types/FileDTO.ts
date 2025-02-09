@@ -1,4 +1,8 @@
-export type InFileDTO = {
+export type FileDTO = {
+  /**
+   * @type string
+   */
+  id: string
   /**
    * @type string
    */

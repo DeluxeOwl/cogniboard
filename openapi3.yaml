@@ -1,5 +1,21 @@
 components:
   schemas:
+    ChangeTaskStatus:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: http://127.0.0.1:8888/v1/api/schemas/ChangeTaskStatus.json
+          format: uri
+          readOnly: true
+          type: string
+        status:
+          description: New status for the task
+          minLength: 1
+          type: string
+      required:
+        - status
+      type: object
     ErrorDetail:
       additionalProperties: false
       properties:
@@ -52,23 +68,7 @@ components:
           format: uri
           type: string
       type: object
-    InChangeTaskStatusDTO:
-      additionalProperties: false
-      properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/InChangeTaskStatusDTO.json
-          format: uri
-          readOnly: true
-          type: string
-        status:
-          description: New status for the task
-          minLength: 1
-          type: string
-      required:
-        - status
-      type: object
-    InFileDTO:
+    FileDTO:
       additionalProperties: false
       properties:
         id:
@@ -90,10 +90,27 @@ components:
         - mime_type
         - uploaded_at
       type: object
-    InTaskDTO:
+    ListTasks:
       additionalProperties: false
       properties:
-        assignee:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: http://127.0.0.1:8888/v1/api/schemas/ListTasks.json
+          format: uri
+          readOnly: true
+          type: string
+        tasks:
+          items:
+            $ref: "#/components/schemas/TaskDTO"
+          nullable: true
+          type: array
+      required:
+        - tasks
+      type: object
+    TaskDTO:
+      additionalProperties: false
+      properties:
+        asignee:
           nullable: true
           type: string
         completed_at:
@@ -112,7 +129,7 @@ components:
           type: string
         files:
           items:
-            $ref: "#/components/schemas/InFileDTO"
+            $ref: "#/components/schemas/FileDTO"
           nullable: true
           type: array
         id:
@@ -125,33 +142,16 @@ components:
           format: date-time
           type: string
       required:
+        - files
         - id
         - title
         - description
         - due_date
-        - assignee
+        - asignee
         - created_at
         - updated_at
         - completed_at
         - status
-        - files
-      type: object
-    InTasksDTO:
-      additionalProperties: false
-      properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/InTasksDTO.json
-          format: uri
-          readOnly: true
-          type: string
-        tasks:
-          items:
-            $ref: "#/components/schemas/InTaskDTO"
-          nullable: true
-          type: array
-      required:
-        - tasks
       type: object
 info:
   title: CogniBoard
@@ -166,7 +166,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InTasksDTO"
+                $ref: "#/components/schemas/ListTasks"
           description: OK
         default:
           content:
@@ -302,7 +302,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/InChangeTaskStatusDTO"
+              $ref: "#/components/schemas/ChangeTaskStatus"
         required: true
       responses:
         "204":

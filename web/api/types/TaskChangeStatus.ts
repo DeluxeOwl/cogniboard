@@ -1,5 +1,5 @@
+import type { ChangeTaskStatus } from './ChangeTaskStatus.ts'
 import type { ErrorModel } from './ErrorModel.ts'
-import type { InChangeTaskStatusDTO } from './InChangeTaskStatusDTO.ts'
 
 export type TaskChangeStatusPathParams = {
   /**
@@ -18,7 +18,7 @@ export type TaskChangeStatus204 = any
  */
 export type TaskChangeStatusError = ErrorModel
 
-export type TaskChangeStatusMutationRequest = Omit<NonNullable<InChangeTaskStatusDTO>, '$schema'>
+export type TaskChangeStatusMutationRequest = Omit<NonNullable<ChangeTaskStatus>, '$schema'>
 
 export type TaskChangeStatusMutationResponse = TaskChangeStatus204
 

@@ -1,10 +1,10 @@
 import type { ErrorModel } from './ErrorModel.ts'
-import type { InTasksDTO } from './InTasksDTO.ts'
+import type { ListTasks } from './ListTasks.ts'
 
 /**
  * @description OK
  */
-export type Tasks200 = InTasksDTO
+export type Tasks200 = ListTasks
 
 /**
  * @description Error

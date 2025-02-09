@@ -1,11 +1,11 @@
 import { errorModelSchema } from './errorModelSchema.ts'
-import { inTasksDTOSchema } from './inTasksDTOSchema.ts'
+import { listTasksSchema } from './listTasksSchema.ts'
 import { z } from 'zod'
 
 /**
  * @description OK
  */
-export const tasks200Schema = z.lazy(() => inTasksDTOSchema)
+export const tasks200Schema = z.lazy(() => listTasksSchema)
 
 /**
  * @description Error

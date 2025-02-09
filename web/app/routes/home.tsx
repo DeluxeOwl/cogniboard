@@ -1,10 +1,4 @@
-import {
-	type InTaskDTO,
-	type InTasksDTO,
-	tasksQueryKey,
-	useTaskChangeStatus,
-	useTasks,
-} from "@/api/index.ts";
+import { type TaskDTO, tasksQueryKey, useTaskChangeStatus, useTasks } from "@/api/index.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -19,7 +13,7 @@ import AddTaskDialog from "./project/task.add";
 import EditTaskDialog from "./project/task.edit";
 
 function useHome() {
-	const [selectedTask, setSelectedTask] = useState<InTaskDTO | null>(null);
+	const [selectedTask, setSelectedTask] = useState<TaskDTO | null>(null);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const { tasks, isLoading, isError, error, handleDragEnd } = useKanbanBoard();
 
@@ -28,7 +22,7 @@ function useHome() {
 
 	const errorMessage = hasError ? error.response?.data.message : "";
 
-	const handleTaskSelect = (task: InTaskDTO) => {
+	const handleTaskSelect = (task: TaskDTO) => {
 		setSelectedTask(task);
 		setEditDialogOpen(true);
 	};
@@ -113,7 +107,7 @@ const Home = () => {
 													{feature.title}
 												</p>
 												<p className="m-0 text-muted-foreground text-xs">{feature.description}</p>
-												{feature.assignee && <p>Assigned to: {feature.assignee}</p>}
+												{feature.asignee && <p>Assigned to: {feature.asignee}</p>}
 											</div>
 										</div>
 										<p className="m-0 text-muted-foreground text-xs">
@@ -156,7 +150,7 @@ function useKanbanBoard() {
 	const queryClient = useQueryClient();
 
 	const { data, isLoading, isError, error } = useTasks();
-	console.info(data);
+
 	const mutation = useTaskChangeStatus();
 
 	const handleDragEnd = (event: DragEndEvent) => {
@@ -190,7 +184,7 @@ function useKanbanBoard() {
 		queryClient.setQueryData(queryKey, (old: DataType) => {
 			return {
 				$schema: old?.$schema,
-				tasks: old?.tasks?.map((task: InTaskDTO) =>
+				tasks: old?.tasks?.map((task: TaskDTO) =>
 					task.id === taskId ? { ...task, status: newStatus } : task
 				),
 			};

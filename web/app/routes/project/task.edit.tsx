@@ -1,4 +1,4 @@
-import { type InTaskDTO, taskEditMutationRequestSchema, tasksQueryKey, useTaskEdit } from "@/api";
+import { type TaskDTO, taskEditMutationRequestSchema, tasksQueryKey, useTaskEdit } from "@/api";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -20,7 +20,7 @@ import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
 interface EditTaskDialogProps {
-	task: InTaskDTO;
+	task: TaskDTO;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
@@ -173,7 +173,7 @@ export default function EditTaskDialog({ task, open, onOpenChange }: EditTaskDia
 type FormData = z.infer<typeof taskEditMutationRequestSchema>;
 
 interface UseEditTaskProps {
-	task: InTaskDTO;
+	task: TaskDTO;
 	onSuccess?: () => void;
 }
 

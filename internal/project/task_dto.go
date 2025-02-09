@@ -9,7 +9,8 @@ import (
 
 // In DTOs - for input adapters: e.g REST api
 
-type taskFormCreateEditFields struct {
+// note: huma doesnt play well with struct embedding
+type CreateTask struct {
 	Title        string          `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
 	Description  string          `form:"description" doc:"Task's description"`
 	DueDate      time.Time       `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
@@ -17,19 +18,19 @@ type taskFormCreateEditFields struct {
 	Files        []huma.FormFile `form:"files"`
 }
 
-type CreateTaskDTO struct {
-	taskFormCreateEditFields
+type EditTask struct {
+	Title        string          `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
+	Description  string          `form:"description" doc:"Task's description"`
+	DueDate      time.Time       `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
+	AssigneeName string          `form:"assignee_name" doc:"Task's asignee (if any)"`
+	Files        []huma.FormFile `form:"files"`
 }
 
-type EditTaskDTO struct {
-	taskFormCreateEditFields
-}
-
-type ChangeTaskStatusDTO struct {
+type ChangeTaskStatus struct {
 	Status string `json:"status" doc:"New status for the task" minLength:"1"`
 }
 
-type AllTasksDTO struct {
+type ListTasks struct {
 	Tasks []TaskDTO `json:"tasks"`
 }
 

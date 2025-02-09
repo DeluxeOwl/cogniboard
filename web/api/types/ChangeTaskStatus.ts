@@ -1,13 +1,13 @@
-import type { InTaskDTO } from './InTaskDTO.ts'
-
-export type InTasksDTO = {
+export type ChangeTaskStatus = {
   /**
    * @description A URL to the JSON Schema for this object.
    * @type string | undefined, uri
    */
   readonly $schema?: string
   /**
-   * @type array
+   * @description New status for the task
+   * @minLength 1
+   * @type string
    */
-  tasks: InTaskDTO[] | null
+  status: string
 }

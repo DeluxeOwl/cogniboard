@@ -67,7 +67,7 @@ func handleError(err error) error {
 }
 
 func (h *Huma) createTask(ctx context.Context, input *struct {
-	RawBody huma.MultipartFormFiles[project.CreateTaskDTO]
+	RawBody huma.MultipartFormFiles[project.CreateTask]
 },
 ) (*struct{}, error) {
 	taskID, err := project.NewTaskID()
@@ -132,7 +132,7 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 	return nil, handleError(err)
 }
 
-func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body project.AllTasksDTO }, error) {
+func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body project.ListTasks }, error) {
 	tasks, err := h.app.Queries.AllTasks.Handle(ctx, struct{}{})
 	if err != nil {
 		return nil, huma.Error400BadRequest("couldn't get tasks", err)
@@ -143,14 +143,14 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body pro
 		dtos[i] = project.ConvertTaskToDTO(&task)
 	}
 
-	return &struct{ Body project.AllTasksDTO }{
-		Body: project.AllTasksDTO{Tasks: dtos},
+	return &struct{ Body project.ListTasks }{
+		Body: project.ListTasks{Tasks: dtos},
 	}, nil
 }
 
 func (h *Huma) editTask(ctx context.Context, input *struct {
 	TaskID  string `path:"taskId"`
-	RawBody huma.MultipartFormFiles[project.CreateTaskDTO]
+	RawBody huma.MultipartFormFiles[project.CreateTask]
 },
 ) (*struct{}, error) {
 	data := input.RawBody.Data()
@@ -178,8 +178,8 @@ func (h *Huma) editTask(ctx context.Context, input *struct {
 }
 
 func (h *Huma) changeTaskStatus(ctx context.Context, input *struct {
-	TaskID string                      `path:"taskId"`
-	Body   project.ChangeTaskStatusDTO `json:"body"`
+	TaskID string                   `path:"taskId"`
+	Body   project.ChangeTaskStatus `json:"body"`
 },
 ) (*struct{}, error) {
 	err := h.app.Commands.ChangeTaskStatus.Handle(ctx, commands.ChangeTaskStatus{
