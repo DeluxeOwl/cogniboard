@@ -18,9 +18,11 @@ import type { z } from "zod";
 
 import { taskCreateMutationRequestSchema, tasksQueryKey } from "@/api";
 import { useTaskCreate } from "@/api/hooks/useTaskCreate";
+import type { TaskCreateMutationRequest } from "@/api/types/TaskCreate";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, LucidePlus } from "lucide-react";
 import { useId, useState } from "react";
+import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/dropzone";
 
 export default function AddTaskDialog() {
 	const id = useId();
@@ -34,9 +36,11 @@ export default function AddTaskDialog() {
 		register,
 		formState: { errors },
 		watch,
+		setValue,
 	} = form;
 
 	const title = watch("title");
+	const files = watch("files");
 	const taskCreateBodyTitleMax =
 		taskCreateMutationRequestSchema.shape.title._def.checks.find((check) => check.kind === "max")
 			?.value ?? 50;
@@ -109,6 +113,24 @@ export default function AddTaskDialog() {
 									</p>
 								)}
 							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-files`}>Files</Label>
+								<Dropzone
+									maxSize={1024 * 1024 * 50}
+									minSize={1024}
+									maxFiles={10}
+									accept={{ "image/*": [], "application/pdf": [".pdf"], "text/csv": [".csv"] }}
+									onDrop={(acceptedFiles) => {
+										setValue("files", acceptedFiles);
+									}}
+									src={files}
+									onError={console.error}
+								>
+									<DropzoneEmptyState />
+									<DropzoneContent />
+								</Dropzone>
+							</div>
 						</form>
 						{mutation.error && (
 							<div className="mt-4 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
@@ -161,18 +183,39 @@ export function useAddTask({ onSuccess }: UseAddTaskProps = {}) {
 		defaultValues: {
 			title: "Water the flowers",
 			description: "",
+			files: [],
 		},
 	});
 
 	const mutation = useTaskCreate();
 
 	const onSubmit = form.handleSubmit((data) => {
+		// Create a type that allows both regular fields and dynamic file fields
+		type FormDataWithFiles = {
+			title: string;
+			description?: string;
+		} & Record<`files.${number}`, File>;
+
+		// Convert files array to individual file entries for FormData
+		const formattedData: FormDataWithFiles = {
+			title: data.title,
+		};
+
+		// Add description only if it exists
+		if (data.description) {
+			formattedData.description = data.description;
+		}
+
+		// Add each file individually as files.0, files.1, etc.
+		if (data.files?.length) {
+			data.files.forEach((file, index) => {
+				formattedData[`files.${index}`] = file;
+			});
+		}
+
 		mutation.mutate(
 			{
-				data: {
-					title: data.title,
-					description: data.description || undefined,
-				},
+				data: formattedData,
 			},
 			{
 				onSuccess: () => {
