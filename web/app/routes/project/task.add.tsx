@@ -18,11 +18,10 @@ import type { z } from "zod";
 
 import { taskCreateMutationRequestSchema, tasksQueryKey } from "@/api";
 import { useTaskCreate } from "@/api/hooks/useTaskCreate";
-import type { TaskCreateMutationRequest } from "@/api/types/TaskCreate";
+import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/dropzone";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, LucidePlus } from "lucide-react";
 import { useId, useState } from "react";
-import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/dropzone";
 
 export default function AddTaskDialog() {
 	const id = useId();
