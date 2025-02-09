@@ -33,16 +33,16 @@ func (r *PostgresTaskRepository) AddFiles(ctx context.Context, taskID project.Ta
 	return WithTx(ctx, r.client, func(tx *ent.Tx) error {
 		// First create all file records
 
-		filesDTO := project.TaskFilesToEntFiles(files) // Just converting isn't that nice
 		entFiles := make([]*ent.File, len(files))
 
-		for i, f := range filesDTO {
+		for i, f := range files {
+			snap := f.GetSnapshot()
 			file, err := tx.File.Create().
-				SetID(f.ID).
-				SetName(f.Name).
-				SetSize(f.Size).
-				SetMimeType(f.MimeType).
-				SetUploadedAt(f.UploadedAt).
+				SetID(snap.ID).
+				SetName(snap.Name).
+				SetSize(snap.Size).
+				SetMimeType(snap.MimeType).
+				SetUploadedAt(snap.UploadedAt).
 				Save(ctx)
 			if err != nil {
 				return fmt.Errorf("create file: %w", err)
@@ -63,13 +63,13 @@ func (r *PostgresTaskRepository) AddFiles(ctx context.Context, taskID project.Ta
 }
 
 func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task) error {
-	t := project.TaskToEnt(task)
+	t := task.GetSnapshot()
 
 	_, err := r.client.Task.Create().
-		SetID(t.ID).
+		SetID(string(t.ID)).
 		SetTitle(t.Title).
 		SetCreatedAt(t.CreatedAt).
-		SetNillableAssigneeName(t.AssigneeName).
+		SetNillableAssigneeName(t.Asignee).
 		SetNillableCompletedAt(t.CompletedAt).
 		SetNillableDescription(t.Description).
 		SetNillableDueDate(t.DueDate).
@@ -88,7 +88,7 @@ func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID)
 		return nil, err
 	}
 
-	return project.EntToTask(task)
+	return project.UnmarshalTaskFromDB(task)
 }
 
 func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.TaskID, updateFn func(t *project.Task) (*project.Task, error)) error {
@@ -103,7 +103,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 		}
 
 		// Convert to domain model
-		domainTask, err := project.EntToTask(existingTask)
+		domainTask, err := project.UnmarshalTaskFromDB(existingTask)
 		if err != nil {
 			return fmt.Errorf("convert to domain model: %w", err)
 		}
@@ -114,18 +114,17 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 			return fmt.Errorf("update function: %w", err)
 		}
 
-		// Convert back to ent model
-		entTask := project.TaskToEnt(updatedTask)
+		snap := updatedTask.GetSnapshot()
 
 		// Update in database
 		_, err = tx.Task.UpdateOneID(string(id)).
-			SetTitle(entTask.Title).
-			SetNillableDescription(entTask.Description).
-			SetNillableDueDate(entTask.DueDate).
-			SetNillableAssigneeName(entTask.AssigneeName).
-			SetNillableCompletedAt(entTask.CompletedAt).
-			SetStatus(entTask.Status).
-			SetUpdatedAt(entTask.UpdatedAt).
+			SetTitle(snap.Title).
+			SetNillableDescription(snap.Description).
+			SetNillableDueDate(snap.DueDate).
+			SetNillableAssigneeName(snap.Asignee).
+			SetNillableCompletedAt(snap.CompletedAt).
+			SetStatus(task.Status(snap.Status)).
+			SetUpdatedAt(snap.UpdatedAt).
 			Save(ctx)
 
 		if err != nil {
@@ -148,7 +147,7 @@ func (r *PostgresTaskRepository) AllTasks(ctx context.Context) ([]project.Task, 
 	// Convert to domain tasks
 	tasks := make([]project.Task, 0, len(entTasks))
 	for _, entTask := range entTasks {
-		domainTask, err := project.EntToTask(entTask)
+		domainTask, err := project.UnmarshalTaskFromDB(entTask)
 		if err != nil {
 			return nil, fmt.Errorf("convert task %s: %w", entTask.ID, err)
 		}

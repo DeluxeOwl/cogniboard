@@ -129,7 +129,7 @@ func Test_RepoGetByID(t *testing.T) {
 		require.Equal(t, task.GetSnapshot().Title, taskFromDB.GetSnapshot().Title)
 		require.Equal(t, task.GetSnapshot().Description, taskFromDB.GetSnapshot().Description)
 		require.Equal(t, task.GetSnapshot().DueDate.UTC(), taskFromDB.GetSnapshot().DueDate.UTC())
-		require.Equal(t, task.GetSnapshot().AsigneeName, taskFromDB.GetSnapshot().AsigneeName)
+		require.Equal(t, task.GetSnapshot().Asignee, taskFromDB.GetSnapshot().Asignee)
 		require.Equal(t, task.GetSnapshot().Status, taskFromDB.GetSnapshot().Status)
 		// Truncate timestamps to milliseconds for comparison
 		require.Equal(t, task.GetSnapshot().CreatedAt.UTC().Truncate(time.Millisecond),
@@ -238,7 +238,7 @@ func Test_RepoUpdateTask(t *testing.T) {
 		require.Equal(t, newTitle, snap.Title)
 		require.Equal(t, &newDescription, snap.Description)
 		require.Equal(t, newDueDate.UTC(), snap.DueDate.UTC())
-		require.Equal(t, &newAssignee, snap.AsigneeName)
+		require.Equal(t, &newAssignee, snap.Asignee)
 		require.Equal(t, project.TaskStatusInProgress, snap.Status)
 
 		// Verify timestamps
@@ -269,7 +269,7 @@ func Test_RepoUpdateTask(t *testing.T) {
 		require.Equal(t, newTitle, snap.Title)
 		require.Nil(t, snap.Description)
 		require.Nil(t, snap.DueDate)
-		require.Nil(t, snap.AsigneeName)
+		require.Nil(t, snap.Asignee)
 		require.Equal(t, project.TaskStatusPending, snap.Status) // Status remains unchanged
 
 		// Update only description
@@ -289,6 +289,6 @@ func Test_RepoUpdateTask(t *testing.T) {
 		require.Equal(t, newTitle, snap.Title) // Title remains unchanged
 		require.Equal(t, &newDescription, snap.Description)
 		require.Nil(t, snap.DueDate)
-		require.Nil(t, snap.AsigneeName)
+		require.Nil(t, snap.Asignee)
 	})
 }

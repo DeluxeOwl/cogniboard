@@ -18,11 +18,11 @@ type FileStorage interface {
 
 // File is a value object that represents a file attached to a task
 type File struct {
-	ID         string
-	Name       string
-	Size       int64
-	MimeType   string
-	UploadedAt time.Time
+	id         string
+	name       string
+	size       int64
+	mimeType   string
+	uploadedAt time.Time
 }
 
 var (
@@ -31,7 +31,6 @@ var (
 )
 
 func NewFile(name string, size int64) (File, error) {
-
 	id, err := uuid.NewV7()
 	if err != nil {
 		return File{}, err
@@ -51,10 +50,28 @@ func NewFile(name string, size int64) (File, error) {
 	}
 
 	return File{
-		ID:         id.String(),
-		Name:       name,
-		Size:       size,
-		MimeType:   mimeType,
-		UploadedAt: time.Now(),
+		id:         id.String(),
+		name:       name,
+		size:       size,
+		mimeType:   mimeType,
+		uploadedAt: time.Now(),
 	}, nil
+}
+
+func (f *File) GetSnapshot() FileSnapshot {
+	return FileSnapshot{
+		ID:         f.id,
+		Name:       f.name,
+		Size:       f.size,
+		MimeType:   f.mimeType,
+		UploadedAt: f.uploadedAt,
+	}
+}
+
+type FileSnapshot struct {
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	Size       int64     `json:"size"`
+	MimeType   string    `json:"mime_type"`
+	UploadedAt time.Time `json:"uploaded_at"`
 }

@@ -46,6 +46,10 @@ tasks:
     cmds:
       - go generate ./ent
 
+  goverter:
+    cmds:
+      - go run github.com/jmattheis/goverter/cmd/goverter@v1.7.0 {{.CLI_ARGS}}
+
   web:
     desc: Start the web sever
     dir: web

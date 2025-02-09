@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
@@ -68,7 +67,7 @@ func handleError(err error) error {
 }
 
 func (h *Huma) createTask(ctx context.Context, input *struct {
-	RawBody huma.MultipartFormFiles[project.InCreateTaskDTO]
+	RawBody huma.MultipartFormFiles[project.CreateTaskDTO]
 },
 ) (*struct{}, error) {
 	taskID, err := project.NewTaskID()
@@ -104,7 +103,6 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 	}
 
 	var domainFiles []project.File
-	now := time.Now()
 	for _, files := range input.RawBody.Form.File {
 		for _, file := range files {
 			filename := file.Filename
@@ -118,12 +116,11 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 				return nil, fmt.Errorf("store file %s: %w", filename, err)
 			}
 
-			domainFiles = append(domainFiles, project.File{
-				Name:       filename,
-				Size:       file.Size,
-				MimeType:   file.Header.Get("Content-Type"),
-				UploadedAt: now,
-			})
+			domainFile, err := project.NewFile(filename, file.Size)
+			if err != nil {
+				return nil, fmt.Errorf("create file %s: %w", filename, err)
+			}
+			domainFiles = append(domainFiles, domainFile)
 		}
 	}
 
@@ -135,25 +132,25 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 	return nil, handleError(err)
 }
 
-func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body project.InTasksDTO }, error) {
+func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body project.AllTasksDTO }, error) {
 	tasks, err := h.app.Queries.AllTasks.Handle(ctx, struct{}{})
 	if err != nil {
 		return nil, huma.Error400BadRequest("couldn't get tasks", err)
 	}
 
-	dtos := make([]project.InTaskDTO, len(tasks))
+	dtos := make([]project.TaskDTO, len(tasks))
 	for i, task := range tasks {
-		dtos[i] = project.ToInTaskDTO(&task)
+		dtos[i] = project.ConvertTaskToDTO(&task)
 	}
 
-	return &struct{ Body project.InTasksDTO }{
-		Body: project.InTasksDTO{Tasks: dtos},
+	return &struct{ Body project.AllTasksDTO }{
+		Body: project.AllTasksDTO{Tasks: dtos},
 	}, nil
 }
 
 func (h *Huma) editTask(ctx context.Context, input *struct {
 	TaskID  string `path:"taskId"`
-	RawBody huma.MultipartFormFiles[project.InCreateTaskDTO]
+	RawBody huma.MultipartFormFiles[project.CreateTaskDTO]
 },
 ) (*struct{}, error) {
 	data := input.RawBody.Data()
@@ -181,8 +178,8 @@ func (h *Huma) editTask(ctx context.Context, input *struct {
 }
 
 func (h *Huma) changeTaskStatus(ctx context.Context, input *struct {
-	TaskID string                        `path:"taskId"`
-	Body   project.InChangeTaskStatusDTO `json:"body"`
+	TaskID string                      `path:"taskId"`
+	Body   project.ChangeTaskStatusDTO `json:"body"`
 },
 ) (*struct{}, error) {
 	err := h.app.Commands.ChangeTaskStatus.Handle(ctx, commands.ChangeTaskStatus{

@@ -147,26 +147,26 @@ func (t *Task) ChangeStatus(status TaskStatus) error {
 }
 
 type TaskSnapshot struct {
-	ID          TaskID
-	Title       string
-	Description *string
-	DueDate     *time.Time
-	AsigneeName *string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	CompletedAt *time.Time
-	Status      TaskStatus
-	Files       []File
+	ID          TaskID     `json:"id"`
+	Title       string     `json:"title"`
+	Description *string    `json:"description"`
+	DueDate     *time.Time `json:"due_date"`
+	Asignee     *string    `json:"asignee"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	CompletedAt *time.Time `json:"completed_at"`
+	Status      TaskStatus `json:"status"`
+	Files       []File     `json:"files"`
 }
 
-// Should only be used for testing
+// Used by the db adapters
 func (t *Task) GetSnapshot() *TaskSnapshot {
 	return &TaskSnapshot{
 		ID:          t.id,
 		Title:       t.title,
 		Description: t.description,
 		DueDate:     t.dueDate,
-		AsigneeName: t.asigneeName,
+		Asignee:     t.asigneeName,
 		CreatedAt:   t.createdAt,
 		UpdatedAt:   t.updatedAt,
 		CompletedAt: t.completedAt,
