@@ -34,6 +34,7 @@ export type DropzoneProps = Omit<DropzoneOptions, "onDrop"> & {
 	className?: string;
 	onDrop?: (acceptedFiles: File[], fileRejections: FileRejection[], event: DropEvent) => void;
 	children?: ReactNode;
+	id: string;
 };
 
 export const Dropzone = ({
@@ -47,6 +48,7 @@ export const Dropzone = ({
 	src,
 	className,
 	children,
+	id,
 	...props
 }: DropzoneProps) => {
 	const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -85,7 +87,9 @@ export const Dropzone = ({
 				{...getRootProps()}
 			>
 				<input
-					{...getInputProps()}
+					{...getInputProps({
+						id: id,
+					})}
 					disabled={disabled}
 				/>
 				{children}

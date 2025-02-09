@@ -37,6 +37,7 @@ export default function AddTaskDialog() {
 		formState: { errors },
 		watch,
 		setValue,
+		setError,
 	} = form;
 
 	const title = watch("title");
@@ -117,6 +118,7 @@ export default function AddTaskDialog() {
 							<div className="space-y-2">
 								<Label htmlFor={`${id}-files`}>Files</Label>
 								<Dropzone
+									id={`${id}-files`}
 									maxSize={1024 * 1024 * 50}
 									minSize={1024}
 									maxFiles={10}
@@ -125,11 +127,18 @@ export default function AddTaskDialog() {
 										setValue("files", acceptedFiles);
 									}}
 									src={files}
-									onError={console.error}
+									onError={(error) => {
+										setError("files", {
+											message: error.message,
+										});
+									}}
 								>
 									<DropzoneEmptyState />
 									<DropzoneContent />
 								</Dropzone>
+								{errors.files && (
+									<p className="text-sm text-destructive">{errors.files.message?.toString()}</p>
+								)}
 							</div>
 						</form>
 						{mutation.error && (
