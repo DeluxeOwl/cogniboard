@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
 import { taskCreateMutationRequestSchema, tasksQueryKey } from "@/api";
+import { convertFilesToFormDataFormat } from "@/lib/form-data";
 import { useTaskCreate } from "@/api/hooks/useTaskCreate";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/dropzone";
 import { useQueryClient } from "@tanstack/react-query";
@@ -189,28 +190,7 @@ export function useAddTask({ onSuccess }: UseAddTaskProps = {}) {
 	const mutation = useTaskCreate();
 
 	const onSubmit = form.handleSubmit((data) => {
-		// Create a type that allows both regular fields and dynamic file fields
-		type FormDataWithFiles = {
-			title: string;
-			description?: string;
-		} & Record<`files.${number}`, File>;
-
-		// Convert files array to individual file entries for FormData
-		const formattedData: FormDataWithFiles = {
-			title: data.title,
-		};
-
-		// Add description only if it exists
-		if (data.description) {
-			formattedData.description = data.description;
-		}
-
-		// Add each file individually as files.0, files.1, etc.
-		if (data.files?.length) {
-			data.files.forEach((file, index) => {
-				formattedData[`files.${index}`] = file;
-			});
-		}
+		const formattedData = convertFilesToFormDataFormat(data);
 
 		mutation.mutate(
 			{
