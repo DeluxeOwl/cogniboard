@@ -51,6 +51,14 @@ func (s *fileStorage) Get(ctx context.Context, taskID project.TaskID, name strin
 	return s.bucket.NewReader(ctx, obj.Key, nil)
 }
 
+func (s *fileStorage) Delete(ctx context.Context, taskID project.TaskID, name string) error {
+	key := s.buildKey(taskID, name)
+	if err := s.bucket.Delete(ctx, key); err != nil {
+		return fmt.Errorf("failed to delete file: %w", err)
+	}
+	return nil
+}
+
 func (s *fileStorage) buildKey(taskID project.TaskID, name string) string {
 	return fmt.Sprintf("%s_%s", taskID, name)
 }

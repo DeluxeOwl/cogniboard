@@ -14,6 +14,7 @@ import (
 type FileStorage interface {
 	Store(ctx context.Context, taskID TaskID, name string, content io.Reader) error
 	Get(ctx context.Context, taskID TaskID, name string) (io.ReadCloser, error)
+	Delete(ctx context.Context, taskID TaskID, name string) error
 }
 
 // File is a value object that represents a file attached to a task
