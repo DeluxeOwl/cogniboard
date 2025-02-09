@@ -2,224 +2,181 @@ package adapters
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
 	// postgres driver
+	"github.com/DeluxeOwl/cogniboard/internal/postgres/ent"
+	"github.com/DeluxeOwl/cogniboard/internal/postgres/ent/task"
 	"github.com/DeluxeOwl/cogniboard/internal/project"
-	"github.com/jmoiron/sqlx"
 )
 
 type PostgresTaskRepository struct {
-	db *sqlx.DB
+	client *ent.Client
 }
 
 var _ project.TaskRepository = &PostgresTaskRepository{}
 
-func NewPostgresTaskRepository(db *sqlx.DB) (*PostgresTaskRepository, error) {
-	if db == nil {
-		return nil, errors.New("db connection cannot be nil")
+func NewPostgresTaskRepository(client *ent.Client) (*PostgresTaskRepository, error) {
+	if client == nil {
+		return nil, errors.New("client cannot be nil")
 	}
 
 	repo := &PostgresTaskRepository{
-		db: db,
+		client: client,
 	}
 
 	return repo, nil
 }
 
 func (r *PostgresTaskRepository) AddFiles(ctx context.Context, taskID project.TaskID, files []project.File) error {
-	tx, err := r.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
-	defer tx.Rollback()
+	return WithTx(ctx, r.client, func(tx *ent.Tx) error {
+		// First create all file records
 
-	// First check if the task exists
-	var exists bool
-	err = tx.GetContext(ctx, &exists, `SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1)`, string(taskID))
-	if err != nil {
-		return fmt.Errorf("check task existence: %w", err)
-	}
-	if !exists {
-		return fmt.Errorf("task not found: %w", sql.ErrNoRows)
-	}
+		filesDTO := project.TaskFilesToEntFiles(files) // Just converting isn't that nice
+		entFiles := make([]*ent.File, len(files))
 
-	// Insert files and create relationships
-	for _, file := range files {
-		// Insert file metadata
-		fileID, err := project.NewTaskID() // Reuse TaskID type as it's also a UUID
-		if err != nil {
-			return fmt.Errorf("generate file ID: %w", err)
-		}
-		_, err = tx.ExecContext(ctx,
-			`INSERT INTO files (id, name, size, mime_type, uploaded_at)
-			VALUES ($1, $2, $3, $4, $5)`,
-			string(fileID), file.Name, file.Size, file.MimeType, file.UploadedAt,
-		)
-		if err != nil {
-			return fmt.Errorf("insert file: %w", err)
+		for i, f := range filesDTO {
+			file, err := tx.File.Create().
+				SetID(f.ID).
+				SetName(f.Name).
+				SetSize(f.Size).
+				SetMimeType(f.MimeType).
+				SetUploadedAt(f.UploadedAt).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("create file: %w", err)
+			}
+			entFiles[i] = file
 		}
 
-		// Create task-file relationship
-		_, err = tx.ExecContext(ctx,
-			`INSERT INTO task_files (task_id, file_id)
-			VALUES ($1, $2)`,
-			string(taskID), string(fileID),
-		)
+		// Then link the files to the task
+		_, err := tx.Task.UpdateOneID(string(taskID)).
+			AddFiles(entFiles...).
+			Save(ctx)
 		if err != nil {
-			return fmt.Errorf("create task-file relationship: %w", err)
+			return fmt.Errorf("update task: %w", err)
 		}
-	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task) error {
-	dto := project.ToOutTaskDTO(task)
+	t := project.TaskToEnt(task)
 
-	_, err := r.db.NamedExecContext(ctx,
-		`INSERT INTO tasks (id, title, description, due_date, assignee, created_at, updated_at, completed_at, status)
-		VALUES (:id, :title, :description, :due_date, :assignee, :created_at, :updated_at, :completed_at, :status)`,
-		dto,
-	)
+	_, err := r.client.Task.Create().
+		SetID(t.ID).
+		SetTitle(t.Title).
+		SetCreatedAt(t.CreatedAt).
+		SetNillableAssigneeName(t.AssigneeName).
+		SetNillableCompletedAt(t.CompletedAt).
+		SetNillableDescription(t.Description).
+		SetNillableDueDate(t.DueDate).
+		Save(ctx)
 
 	return err
 }
 
 func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID) (*project.Task, error) {
-	var taskDTO project.OutTaskDTO
-	err := r.db.GetContext(ctx, &taskDTO,
-		`SELECT id, title, description, due_date, assignee, created_at, updated_at, completed_at, status
-		FROM tasks WHERE id = $1`,
-		string(id),
-	)
+	task, err := r.client.Task.Query().
+		Where(task.IDEQ(string(id))).
+		WithFiles().
+		First(ctx)
+
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("task not found: %w", err)
-		}
-		return nil, fmt.Errorf("get task: %w", err)
+		return nil, err
 	}
 
-	// Get associated files
-	var fileDTOs []project.OutFileDTO
-	err = r.db.SelectContext(ctx, &fileDTOs,
-		`SELECT f.id, f.name, f.size, f.mime_type, f.uploaded_at
-		FROM files f
-		JOIN task_files tf ON tf.file_id = f.id
-		WHERE tf.task_id = $1`,
-		string(id),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get task files: %w", err)
-	}
-
-	task, err := project.FromOutTaskDTO(&taskDTO)
-	if err != nil {
-		return nil, fmt.Errorf("convert to domain: %w", err)
-	}
-
-	// Add files to task
-	for _, fileDTO := range fileDTOs {
-		task.AddFile(*project.FileFromOutFileDTO(&fileDTO))
-	}
-
-	return task, nil
+	return project.EntToTask(task)
 }
 
 func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.TaskID, updateFn func(t *project.Task) (*project.Task, error)) error {
-	tx, err := r.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	var dto project.OutTaskDTO
-	err = tx.GetContext(ctx, &dto,
-		`SELECT id, title, description, due_date, assignee, created_at, completed_at, status
-		FROM tasks WHERE id = $1 FOR UPDATE`,
-		string(id),
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("task not found: %w", err)
+	return WithTx(ctx, r.client, func(tx *ent.Tx) error {
+		// Get existing task with files
+		existingTask, err := tx.Task.Query().
+			Where(task.IDEQ(string(id))).
+			WithFiles().
+			First(ctx)
+		if err != nil {
+			return fmt.Errorf("query task: %w", err)
 		}
-		return fmt.Errorf("get task: %w", err)
-	}
 
-	existingTask, err := project.FromOutTaskDTO(&dto)
-	if err != nil {
-		return fmt.Errorf("convert to domain: %w", err)
-	}
+		// Convert to domain model
+		domainTask, err := project.EntToTask(existingTask)
+		if err != nil {
+			return fmt.Errorf("convert to domain model: %w", err)
+		}
 
-	updatedTask, err := updateFn(existingTask)
-	if err != nil {
-		return err
-	}
+		// Apply update function
+		updatedTask, err := updateFn(domainTask)
+		if err != nil {
+			return fmt.Errorf("update function: %w", err)
+		}
 
-	updatedDTO := project.ToOutTaskDTO(updatedTask)
-	_, err = tx.NamedExecContext(ctx,
-		`UPDATE tasks
-		SET title = :title, description = :description, due_date = :due_date,
-			assignee = :assignee, created_at = :created_at, updated_at = :updated_at,
-			completed_at = :completed_at, status = :status
-		WHERE id = :id`,
-		updatedDTO,
-	)
+		// Convert back to ent model
+		entTask := project.TaskToEnt(updatedTask)
 
-	if err != nil {
-		return fmt.Errorf("update task: %w", err)
-	}
+		// Update in database
+		_, err = tx.Task.UpdateOneID(string(id)).
+			SetTitle(entTask.Title).
+			SetNillableDescription(entTask.Description).
+			SetNillableDueDate(entTask.DueDate).
+			SetNillableAssigneeName(entTask.AssigneeName).
+			SetNillableCompletedAt(entTask.CompletedAt).
+			SetStatus(entTask.Status).
+			SetUpdatedAt(entTask.UpdatedAt).
+			Save(ctx)
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
-	}
+		if err != nil {
+			return fmt.Errorf("save task: %w", err)
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func (r *PostgresTaskRepository) AllTasks(ctx context.Context) ([]project.Task, error) {
-	var taskDTOs []project.OutTaskDTO
-	err := r.db.SelectContext(ctx, &taskDTOs,
-		`SELECT id, title, description, due_date, assignee, created_at, updated_at, completed_at, status
-		FROM tasks`,
-	)
+	// Query all tasks with their files
+	entTasks, err := r.client.Task.Query().
+		WithFiles().
+		All(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get all tasks: %w", err)
+		return nil, fmt.Errorf("query tasks: %w", err)
 	}
 
-	tasks := make([]project.Task, 0, len(taskDTOs))
-	for _, taskDTO := range taskDTOs {
-		task, err := project.FromOutTaskDTO(&taskDTO)
+	// Convert to domain tasks
+	tasks := make([]project.Task, 0, len(entTasks))
+	for _, entTask := range entTasks {
+		domainTask, err := project.EntToTask(entTask)
 		if err != nil {
-			return nil, fmt.Errorf("convert task to domain: %w", err)
+			return nil, fmt.Errorf("convert task %s: %w", entTask.ID, err)
 		}
-
-		// Get files for each task
-		var fileDTOs []project.OutFileDTO
-		err = r.db.SelectContext(ctx, &fileDTOs,
-			`SELECT f.id, f.name, f.size, f.mime_type, f.uploaded_at
-			FROM files f
-			JOIN task_files tf ON tf.file_id = f.id
-			WHERE tf.task_id = $1`,
-			taskDTO.ID,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("get task files: %w", err)
-		}
-
-		for _, fileDTO := range fileDTOs {
-			task.AddFile(*project.FileFromOutFileDTO(&fileDTO))
-		}
-
-		tasks = append(tasks, *task)
+		tasks = append(tasks, *domainTask)
 	}
 
 	return tasks, nil
+}
+
+func WithTx(ctx context.Context, client *ent.Client, fn func(tx *ent.Tx) error) error {
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if v := recover(); v != nil {
+			tx.Rollback()
+			panic(v)
+		}
+	}()
+	if err := fn(tx); err != nil {
+		if rerr := tx.Rollback(); rerr != nil {
+			err = fmt.Errorf("%w: rolling back transaction: %v", err, rerr)
+		}
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
+	return nil
 }

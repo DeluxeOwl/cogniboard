@@ -36,6 +36,16 @@ tasks:
     cmds:
       - bun gen-api
 
+  ent:
+    dir: internal/postgres
+    cmds:
+      - go run -mod=mod entgo.io/ent/cmd/ent {{.CLI_ARGS}}
+
+  ent-gen:
+    dir: internal/postgres
+    cmds:
+      - go generate ./ent
+
   web:
     desc: Start the web sever
     dir: web

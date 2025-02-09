@@ -64,7 +64,6 @@ func TestFileStorage_Store(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, content, string(data))
 	})
-
 }
 
 func TestFileStorage_Get(t *testing.T) {

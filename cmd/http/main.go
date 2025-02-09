@@ -51,7 +51,7 @@ func main() {
 		api := setupAPI(e, options.Host)
 		logger := setupLogger(options.Env)
 
-		app := setupApplication(options.PostgresDSN, logger)
+		app := setupApplication(ctx, options.PostgresDSN, logger)
 		fileStorage := setupFileStorage(ctx, options.FileDir)
 		setupHTTPHandlers(api, app, fileStorage)
 
@@ -115,8 +115,8 @@ func setupLogger(env string) *slog.Logger {
 	return slog.New(handler)
 }
 
-func setupApplication(dsn string, logger *slog.Logger) *app.Application {
-	db, err := postgres.NewPostgresWithMigrate(dsn)
+func setupApplication(ctx context.Context, dsn string, logger *slog.Logger) *app.Application {
+	db, err := postgres.NewPostgresWithMigrate(ctx, dsn)
 	if err != nil {
 		panic(err)
 	}

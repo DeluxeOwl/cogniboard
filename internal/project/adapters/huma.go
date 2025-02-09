@@ -26,7 +26,6 @@ func NewHuma(api huma.API, app *app.Application, fileStorage project.FileStorage
 
 // Register registers all HTTP routes with huma
 func (h *Huma) Register() {
-
 	var maxBodyBytes int64 = 50 * 1024 * 1024
 
 	huma.Register(h.api, huma.Operation{
@@ -70,7 +69,8 @@ func handleError(err error) error {
 
 func (h *Huma) createTask(ctx context.Context, input *struct {
 	RawBody huma.MultipartFormFiles[project.InCreateTaskDTO]
-}) (*struct{}, error) {
+},
+) (*struct{}, error) {
 	taskID, err := project.NewTaskID()
 	if err != nil {
 		return nil, err
@@ -154,7 +154,8 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body pro
 func (h *Huma) editTask(ctx context.Context, input *struct {
 	TaskID  string `path:"taskId"`
 	RawBody huma.MultipartFormFiles[project.InCreateTaskDTO]
-}) (*struct{}, error) {
+},
+) (*struct{}, error) {
 	data := input.RawBody.Data()
 
 	cmd := commands.EditTask{
@@ -182,7 +183,8 @@ func (h *Huma) editTask(ctx context.Context, input *struct {
 func (h *Huma) changeTaskStatus(ctx context.Context, input *struct {
 	TaskID string                        `path:"taskId"`
 	Body   project.InChangeTaskStatusDTO `json:"body"`
-}) (*struct{}, error) {
+},
+) (*struct{}, error) {
 	err := h.app.Commands.ChangeTaskStatus.Handle(ctx, commands.ChangeTaskStatus{
 		TaskID: input.TaskID,
 		Status: input.Body.Status,

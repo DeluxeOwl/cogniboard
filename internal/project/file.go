@@ -7,6 +7,8 @@ import (
 	"mime"
 	"path/filepath"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type FileStorage interface {
@@ -16,6 +18,7 @@ type FileStorage interface {
 
 // File is a value object that represents a file attached to a task
 type File struct {
+	ID         string
 	Name       string
 	Size       int64
 	MimeType   string
@@ -28,6 +31,12 @@ var (
 )
 
 func NewFile(name string, size int64) (File, error) {
+
+	id, err := uuid.NewV7()
+	if err != nil {
+		return File{}, err
+	}
+
 	if name == "" {
 		return File{}, ErrInvalidFileName
 	}
@@ -42,6 +51,7 @@ func NewFile(name string, size int64) (File, error) {
 	}
 
 	return File{
+		ID:         id.String(),
 		Name:       name,
 		Size:       size,
 		MimeType:   mimeType,

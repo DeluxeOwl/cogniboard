@@ -71,6 +71,8 @@ components:
     InFileDTO:
       additionalProperties: false
       properties:
+        id:
+          type: string
         mime_type:
           type: string
         name:
@@ -82,6 +84,7 @@ components:
           format: date-time
           type: string
       required:
+        - id
         - name
         - size
         - mime_type

@@ -3,6 +3,8 @@ package project
 import (
 	"time"
 
+	"github.com/DeluxeOwl/cogniboard/internal/postgres/ent"
+	"github.com/DeluxeOwl/cogniboard/internal/postgres/ent/task"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -33,6 +35,7 @@ type InTaskDTO struct {
 }
 
 type InFileDTO struct {
+	ID         string    `json:"id"`
 	Name       string    `json:"name"`
 	Size       int64     `json:"size"`
 	MimeType   string    `json:"mime_type"`
@@ -82,73 +85,64 @@ type InChangeTaskStatusDTO struct {
 }
 
 // Out DTOs - for output adapters: e.g. postgres
-type OutFileDTO struct {
-	ID         string    `db:"id"`
-	Name       string    `db:"name"`
-	Size       int64     `db:"size"`
-	MimeType   string    `db:"mime_type"`
-	UploadedAt time.Time `db:"uploaded_at"`
-}
 
-func FileToOutFileDTO(file *File) OutFileDTO {
-	return OutFileDTO{
-		Name:       file.Name,
-		Size:       file.Size,
-		MimeType:   file.MimeType,
-		UploadedAt: file.UploadedAt,
-	}
-}
-
-func FileFromOutFileDTO(dto *OutFileDTO) *File {
-	return &File{
-		Name:       dto.Name,
-		Size:       dto.Size,
-		MimeType:   dto.MimeType,
-		UploadedAt: dto.UploadedAt,
-	}
-}
-
-type OutTaskFilesDTO struct {
-	TaskID string `db:"task_id"`
-	FileID string `db:"file_id"`
-}
-
-type OutTaskDTO struct {
-	ID           string     `db:"id"`
-	Title        string     `db:"title"`
-	Description  *string    `db:"description"`
-	DueDate      *time.Time `db:"due_date"`
-	AssigneeName *string    `db:"assignee"`
-	CreatedAt    time.Time  `db:"created_at"`
-	UpdatedAt    time.Time  `db:"updated_at"`
-	CompletedAt  *time.Time `db:"completed_at"`
-	Status       string     `db:"status"`
-}
-
-func ToOutTaskDTO(t *Task) *OutTaskDTO {
-	return &OutTaskDTO{
-		ID:           string(t.id),
-		Title:        t.title,
-		Description:  t.description,
-		DueDate:      t.dueDate,
-		AssigneeName: t.asigneeName,
-		CreatedAt:    t.createdAt,
-		UpdatedAt:    t.updatedAt,
-		CompletedAt:  t.completedAt,
-		Status:       string(t.status),
-	}
-}
-
-func FromOutTaskDTO(t *OutTaskDTO) (*Task, error) {
+func EntToTask(t *ent.Task) (*Task, error) {
 	task, err := NewTask(TaskID(t.ID), t.Title, t.Description, t.DueDate, t.AssigneeName)
 	if err != nil {
 		return nil, err
 	}
 
 	task.createdAt = t.CreatedAt
-	task.updatedAt = t.UpdatedAt
 	task.completedAt = t.CompletedAt
+	task.updatedAt = t.UpdatedAt
 	task.status = TaskStatus(t.Status)
 
+	task.files = EntFilesToTaskFiles(t.Edges.Files)
+
 	return task, nil
+}
+
+func TaskToEnt(t *Task) *ent.Task {
+	return &ent.Task{
+		ID:           string(t.id),
+		Title:        t.title,
+		Description:  t.description,
+		AssigneeName: t.asigneeName,
+		DueDate:      t.dueDate,
+		CreatedAt:    t.createdAt,
+		UpdatedAt:    t.updatedAt,
+		CompletedAt:  t.completedAt,
+		Status:       task.Status(t.status),
+		Edges: ent.TaskEdges{
+			Files: TaskFilesToEntFiles(t.files),
+		},
+	}
+}
+
+func TaskFilesToEntFiles(taskFiles []File) []*ent.File {
+	files := make([]*ent.File, len(taskFiles))
+	for i, f := range taskFiles {
+		files[i] = &ent.File{
+			ID:         f.ID,
+			Name:       f.Name,
+			Size:       f.Size,
+			MimeType:   f.MimeType,
+			UploadedAt: f.UploadedAt,
+		}
+	}
+	return files
+}
+
+func EntFilesToTaskFiles(entFiles []*ent.File) []File {
+	files := make([]File, len(entFiles))
+	for i, f := range entFiles {
+		files[i] = File{
+			ID:         f.ID,
+			Name:       f.Name,
+			Size:       f.Size,
+			MimeType:   f.MimeType,
+			UploadedAt: f.UploadedAt,
+		}
+	}
+	return files
 }

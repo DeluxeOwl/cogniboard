@@ -40,7 +40,6 @@ var (
 )
 
 func setupPostgresRepo(ctx context.Context, t *testing.T) (repo *PostgresTaskRepository, cleanup func()) {
-
 	req := testcontainers.ContainerRequest{
 		Image:        pgImage,
 		ExposedPorts: []string{pgPort},
@@ -60,7 +59,7 @@ func setupPostgresRepo(ctx context.Context, t *testing.T) (repo *PostgresTaskRep
 	endpoint, err := postgresContainer.Endpoint(ctx, "")
 	require.NoError(t, err)
 
-	db, err := postgres.NewPostgresWithMigrate(pgCreds.DSN(endpoint))
+	db, err := postgres.NewPostgresWithMigrate(ctx, pgCreds.DSN(endpoint))
 	require.NoError(t, err)
 	require.NotNil(t, db)
 
@@ -132,9 +131,12 @@ func Test_RepoGetByID(t *testing.T) {
 		require.Equal(t, task.GetSnapshot().DueDate.UTC(), taskFromDB.GetSnapshot().DueDate.UTC())
 		require.Equal(t, task.GetSnapshot().AsigneeName, taskFromDB.GetSnapshot().AsigneeName)
 		require.Equal(t, task.GetSnapshot().Status, taskFromDB.GetSnapshot().Status)
-		require.Equal(t, task.GetSnapshot().CreatedAt.UTC(), taskFromDB.GetSnapshot().CreatedAt.UTC())
+		// Truncate timestamps to milliseconds for comparison
+		require.Equal(t, task.GetSnapshot().CreatedAt.UTC().Truncate(time.Millisecond),
+			taskFromDB.GetSnapshot().CreatedAt.UTC().Truncate(time.Millisecond))
 		require.Equal(t, task.GetSnapshot().CompletedAt, taskFromDB.GetSnapshot().CompletedAt)
-		require.Equal(t, task.GetSnapshot().UpdatedAt.UTC(), taskFromDB.GetSnapshot().UpdatedAt.UTC())
+		require.Equal(t, task.GetSnapshot().UpdatedAt.UTC().Truncate(time.Millisecond),
+			taskFromDB.GetSnapshot().UpdatedAt.UTC().Truncate(time.Millisecond))
 	})
 }
 
