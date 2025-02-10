@@ -98,7 +98,7 @@ export default function EditTaskDialog({ task, open, onOpenChange }: EditTaskDia
 									<Label htmlFor={`${id}-task-title`}>Task title</Label>
 									<Input
 										id={`${id}-task-title`}
-										placeholder="TODO: Fix this app"
+										placeholder="Fix some stuff"
 										type="text"
 										maxLength={taskEditBodyTitleMax}
 										{...register("title")}
