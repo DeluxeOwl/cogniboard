@@ -32,8 +32,9 @@ const (
 )
 
 type Options struct {
-	LLMKey                   string `help:"The api key for the openai compatible endpoint"`
-	OpenaiCompatibleEndpoint string `help:"The openai compatible endpoint" default:"https://api.openai.com/v1/"`
+	ModelApiKey              string `help:"The api key for the openai compatible endpoint"`
+	AiModel                  string `help:"The model for the api"`
+	OpenaiCompatibleEndpoint string `help:"The openai compatible endpoint"`
 	PostgresDSN              string `help:"The postgres connection string"`
 	Host                     string `help:"The host:port to listen on" default:"127.0.0.1:8888"`
 	Env                      string `help:"The environment to run in" default:"dev"`
@@ -57,10 +58,17 @@ func main() {
 		// Uncomment if you want to proxy everything to openai directly, see below
 		// setupProxy(logger, e, options.OpenaiCompatibleEndpoint, options.LLMKey)
 
+		litter.Dump(options)
+
 		api := setupAPI(e, options.Host)
 
 		fileStorage := setupFileStorage(ctx, options.FileDir)
-		app := setupApplication(ctx, options.PostgresDSN, logger, fileStorage, options.OpenaiCompatibleEndpoint, options.LLMKey)
+		app := setupApplication(ctx, options.PostgresDSN,
+			logger,
+			fileStorage,
+			options.OpenaiCompatibleEndpoint,
+			options.ModelApiKey,
+			options.AiModel)
 		setupHTTPHandlers(api, app, logger)
 
 		hooks.OnStart(func() {
@@ -142,6 +150,7 @@ func setupApplication(ctx context.Context,
 	fileStorage project.FileStorage,
 	openAICompatibleEndpoint string,
 	llmAPIKey string,
+	aiModel string,
 ) *app.Application {
 	db, err := postgres.NewPostgresWithMigrate(ctx, dsn)
 	if err != nil {
@@ -160,7 +169,7 @@ func setupApplication(ctx context.Context,
 
 	// Create OpenAI adapter with configuration
 	chatService := adapters.NewOpenAIAdapter(openaiClient, adapters.OpenAIConfig{
-		Model: openai.ChatModelO3Mini,
+		Model: aiModel,
 	})
 
 	app, err := app.New(repo, logger, fileStorage, chatService)

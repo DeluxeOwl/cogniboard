@@ -108,11 +108,6 @@ const ChatResponseSchema = z.object({
 	choices: z.array(ChoiceSchema),
 });
 
-// Types inferred from Zod schemas
-type ChatResponse = z.infer<typeof ChatResponseSchema>;
-type Choice = z.infer<typeof ChoiceSchema>;
-type Delta = z.infer<typeof DeltaSchema>;
-
 const OpenAIWithoutProxyAdapter: ChatModelAdapter = {
 	async *run({ messages, abortSignal, context }) {
 		try {

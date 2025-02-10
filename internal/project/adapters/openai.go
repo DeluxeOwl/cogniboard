@@ -75,11 +75,20 @@ func convertMessages(messages []queries.Message) ([]openai.ChatCompletionMessage
 
 		switch msg.Role {
 		case RoleUser:
-			result = append(result, openai.UserMessage(combinedText.String()))
+			result = append(result, openai.ChatCompletionMessageParam{
+				Role:    openai.F(openai.ChatCompletionMessageParamRoleUser),
+				Content: openai.F(any(combinedText.String())),
+			})
 		case RoleAssistant:
-			result = append(result, openai.AssistantMessage(combinedText.String()))
+			result = append(result, openai.ChatCompletionMessageParam{
+				Role:    openai.F(openai.ChatCompletionMessageParamRoleAssistant),
+				Content: openai.F(any(combinedText.String())),
+			})
 		case RoleSystem:
-			result = append(result, openai.SystemMessage(combinedText.String()))
+			result = append(result, openai.ChatCompletionMessageParam{
+				Role:    openai.F(openai.ChatCompletionMessageParamRoleSystem),
+				Content: openai.F(any(combinedText.String())),
+			})
 		default:
 			return nil, fmt.Errorf("unknown role: %s", msg.Role)
 		}
