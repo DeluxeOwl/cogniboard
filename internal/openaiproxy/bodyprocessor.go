@@ -2,6 +2,7 @@ package openaiproxy
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -23,7 +24,7 @@ func ProcessRequestBody(req *http.Request, processor BodyProcessor) error {
 	// Read the original body
 	bodyBytes, err := io.ReadAll(req.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("read body: %w", err)
 	}
 
 	// Close the original body
@@ -32,7 +33,7 @@ func ProcessRequestBody(req *http.Request, processor BodyProcessor) error {
 	// Process the body
 	processedBody, err := processor.Process(bodyBytes)
 	if err != nil {
-		return err
+		return fmt.Errorf("process body: %w", err)
 	}
 
 	// Recreate the body reader
