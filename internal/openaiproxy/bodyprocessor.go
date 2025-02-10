@@ -7,6 +7,7 @@ import (
 )
 
 // TODO: check if you can process the streaming output as well
+// for tool calling, modifying response etc. also check if you can use the official openapi client
 type BodyProcessor interface {
 	Process(body []byte) ([]byte, error)
 }
