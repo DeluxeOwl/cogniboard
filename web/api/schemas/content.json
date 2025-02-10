@@ -1,0 +1,1 @@
+{"additionalProperties":false,"properties":{"text":{"type":"string"},"type":{"type":"string"}},"required":["type","text"],"type":"object","x-readme-ref-name":"Content"}

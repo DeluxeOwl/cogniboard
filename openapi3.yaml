@@ -16,12 +16,12 @@ components:
       required:
         - status
       type: object
-    ChatRequest:
+    ChatWithProject:
       additionalProperties: false
       properties:
         $schema:
           description: A URL to the JSON Schema for this object.
-          example: http://127.0.0.1:8888/v1/api/schemas/ChatRequest.json
+          example: http://127.0.0.1:8888/v1/api/schemas/ChatWithProject.json
           format: uri
           readOnly: true
           type: string
@@ -207,7 +207,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ChatRequest"
+              $ref: "#/components/schemas/ChatWithProject"
         required: true
       responses:
         "200":

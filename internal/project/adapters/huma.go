@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -10,20 +11,20 @@ import (
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/commands"
+	"github.com/DeluxeOwl/cogniboard/internal/project/app/queries"
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 )
 
 // Huma handles HTTP requests using the huma framework
 type Huma struct {
-	api huma.API
-	app *app.Application
+	api    huma.API
+	app    *app.Application
+	logger *slog.Logger
 }
 
 // NewHuma creates a new huma HTTP server
-func NewHuma(api huma.API, app *app.Application) *Huma {
-	return &Huma{api: api, app: app}
+func NewHuma(api huma.API, app *app.Application, logger *slog.Logger) *Huma {
+	return &Huma{api: api, app: app, logger: logger}
 }
 
 // Register registers all HTTP routes with huma
@@ -43,7 +44,7 @@ func (h *Huma) Register() {
 		Method:      http.MethodPost,
 		Path:        "/chat",
 		Summary:     "Chat about your project",
-	}, h.projectChat)
+	}, h.chatWithProject)
 
 	huma.Register(h.api, huma.Operation{
 		OperationID: "tasks",
@@ -78,67 +79,28 @@ func handleError(err error) error {
 
 // In DTOs - for input adapters: e.g REST api
 
-func chatReqToParams(body ChatRequest) []openai.ChatCompletionMessageParamUnion {
-	messages := make([]openai.ChatCompletionMessageParamUnion, len(body.Messages))
-	for i, msg := range body.Messages {
-		isUser := msg.Role == "user"
-		for _, content := range msg.Content {
-			if isUser {
-				messages[i] = openai.UserMessage(content.Text)
-			} else {
-				messages[i] = openai.AssistantMessage(content.Text)
-			}
-		}
-
-	}
-	return messages
-}
-
-type Message struct {
-	Role    string    `json:"role"`
-	Content []Content `json:"content"`
-}
-
-type Content struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-}
-
-type ChatRequest struct {
-	Messages []Message `json:"messages"`
-}
-
-func (h *Huma) projectChat(ctx context.Context, input *struct{ Body ChatRequest }) (*huma.StreamResponse, error) {
+func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body queries.ChatWithProject }) (*huma.StreamResponse, error) {
 	return &huma.StreamResponse{
 		Body: func(ctx huma.Context) {
-			// Write header info before streaming the body.
+
 			ctx.SetHeader("Content-Type", "text/my-stream")
 			writer := ctx.BodyWriter()
 
-			// Update the write deadline to give us extra time.
 			if d, ok := writer.(interface{ SetWriteDeadline(time.Time) error }); ok {
 				d.SetWriteDeadline(time.Now().Add(5 * time.Second))
 			}
 
-			key := "add key"
-			client := openai.NewClient(
-				option.WithAPIKey(key),
-			)
-
-			stream := client.Chat.Completions.NewStreaming(ctx.Context(), openai.ChatCompletionNewParams{
-				Messages: openai.F(chatReqToParams(input.Body)),
-				Model:    openai.F(openai.ChatModelO3Mini),
+			stream, err := h.app.Queries.ChatWithProject.Handle(ctx.Context(), queries.ChatWithProject{
+				Messages: input.Body.Messages,
 			})
+			if err != nil {
+				h.logger.Error("create stream", "err", err)
+			}
 
 			for stream.Next() {
 				chunk := stream.Current()
-				json := chunk.JSON.RawJSON()
 
-				rawByteChunk := make([]byte, 0, len(json)+1)
-				rawByteChunk = append(rawByteChunk, json...)
-				rawByteChunk = append(rawByteChunk, '\n')
-
-				writer.Write(rawByteChunk)
+				writer.Write(chunk)
 				if f, ok := writer.(http.Flusher); ok {
 					f.Flush()
 				} else {

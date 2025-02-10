@@ -7,6 +7,7 @@ import (
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/commands"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/queries"
+	"github.com/openai/openai-go"
 )
 
 type Application struct {
@@ -22,11 +23,13 @@ type Commands struct {
 }
 
 type Queries struct {
-	AllTasks queries.AllTasksHandler
+	AllTasks        queries.AllTasksHandler
+	ChatWithProject queries.ChatWithProjectHandler
 }
 
 // Validation for the arguments injected into command & queries happens here
-func New(repo project.TaskRepository, logger *slog.Logger, fileStorage project.FileStorage) (*Application, error) {
+// TODO: maybe create an interface instead of using the openai client directly, see usage
+func New(repo project.TaskRepository, logger *slog.Logger, fileStorage project.FileStorage, openaiClient *openai.Client) (*Application, error) {
 	if repo == nil {
 		return nil, errors.New("repo cannot be nil")
 	}
@@ -35,6 +38,9 @@ func New(repo project.TaskRepository, logger *slog.Logger, fileStorage project.F
 	}
 	if fileStorage == nil {
 		return nil, errors.New("file storage cannot be nil")
+	}
+	if openaiClient == nil {
+		return nil, errors.New("openai client cannot be nil")
 	}
 
 	return &Application{
@@ -45,7 +51,8 @@ func New(repo project.TaskRepository, logger *slog.Logger, fileStorage project.F
 			AttachFilesToTask: commands.NewAttachFilesToTaskHandler(repo, logger, fileStorage),
 		},
 		Queries: Queries{
-			AllTasks: queries.NewAllTasksHandler(repo, logger),
+			AllTasks:        queries.NewAllTasksHandler(repo, logger),
+			ChatWithProject: queries.NewChatWithProjectHandler(openaiClient, logger),
 		},
 	}, nil
 }

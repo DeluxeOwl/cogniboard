@@ -1,0 +1,1 @@
+{"additionalProperties":false,"properties":{"content":{"items":{"additionalProperties":false,"properties":{"text":{"type":"string"},"type":{"type":"string"}},"required":["type","text"],"type":"object","x-readme-ref-name":"Content"},"nullable":true,"type":"array"},"role":{"type":"string"}},"required":["role","content"],"type":"object","x-readme-ref-name":"Message"}

@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/DeluxeOwl/cogniboard/internal/openaiproxy"
 	"github.com/DeluxeOwl/cogniboard/internal/postgres"
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/adapters"
@@ -20,6 +19,8 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 	"github.com/sanity-io/litter"
 
 	_ "github.com/danielgtaylor/huma/v2/formats/cbor"
@@ -32,7 +33,7 @@ const (
 
 type Options struct {
 	LLMKey                   string `help:"The api key for the openai compatible endpoint"`
-	OpenaiCompatibleEndpoint string `help:"The openai compatible endpoint"`
+	OpenaiCompatibleEndpoint string `help:"The openai compatible endpoint" default:"https://api.openai.com/v1/"`
 	PostgresDSN              string `help:"The postgres connection string"`
 	Host                     string `help:"The host:port to listen on" default:"127.0.0.1:8888"`
 	Env                      string `help:"The environment to run in" default:"dev"`
@@ -52,12 +53,15 @@ func main() {
 	cli := humacli.New(func(hooks humacli.Hooks, options *Options) {
 		e := setupEcho()
 		logger := setupLogger(options.Env)
-		setupProxy(logger, e, options.OpenaiCompatibleEndpoint, options.LLMKey)
+
+		// Uncomment if you want to proxy everything to openai directly, see below
+		// setupProxy(logger, e, options.OpenaiCompatibleEndpoint, options.LLMKey)
+
 		api := setupAPI(e, options.Host)
 
 		fileStorage := setupFileStorage(ctx, options.FileDir)
-		app := setupApplication(ctx, options.PostgresDSN, logger, fileStorage)
-		setupHTTPHandlers(api, app)
+		app := setupApplication(ctx, options.PostgresDSN, logger, fileStorage, options.OpenaiCompatibleEndpoint, options.LLMKey)
+		setupHTTPHandlers(api, app, logger)
 
 		hooks.OnStart(func() {
 			logger.Info("Server started", "host", options.Host)
@@ -69,15 +73,15 @@ func main() {
 	cli.Run()
 }
 
-func setupProxy(logger *slog.Logger, e *echo.Echo, endpoint string, key string) {
-	proxy, err := openaiproxy.NewProxy(logger, endpoint, key, "/chat")
-	if err != nil {
-		panic(err)
-	}
+// func setupProxy(logger *slog.Logger, e *echo.Echo, endpoint string, key string) {
+// 	proxy, err := openaiproxy.NewProxy(logger, endpoint, key, "/chat")
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	chatGroup := e.Group("/chat")
-	chatGroup.Any("/*", openaiproxy.NewEchoHandlerWithSSE(logger, proxy))
-}
+// 	chatGroup := e.Group("/chat")
+// 	chatGroup.Any("/*", openaiproxy.NewEchoHandlerWithSSE(logger, proxy))
+// }
 
 func setupEcho() *echo.Echo {
 	e := echo.New()
@@ -132,7 +136,13 @@ func setupLogger(env string) *slog.Logger {
 	return slog.New(handler)
 }
 
-func setupApplication(ctx context.Context, dsn string, logger *slog.Logger, fileStorage project.FileStorage) *app.Application {
+func setupApplication(ctx context.Context,
+	dsn string,
+	logger *slog.Logger,
+	fileStorage project.FileStorage,
+	openAICompatibleEndpoint string,
+	llmAPIKey string,
+) *app.Application {
 	db, err := postgres.NewPostgresWithMigrate(ctx, dsn)
 	if err != nil {
 		panic(err)
@@ -143,7 +153,12 @@ func setupApplication(ctx context.Context, dsn string, logger *slog.Logger, file
 		panic(err)
 	}
 
-	app, err := app.New(repo, logger, fileStorage)
+	openaiClient := openai.NewClient(
+		option.WithAPIKey(llmAPIKey),
+		option.WithBaseURL(openAICompatibleEndpoint),
+	)
+
+	app, err := app.New(repo, logger, fileStorage, openaiClient)
 	if err != nil {
 		panic(err)
 	}
@@ -164,8 +179,8 @@ func setupFileStorage(ctx context.Context, fileDir string) project.FileStorage {
 	return fileStorage
 }
 
-func setupHTTPHandlers(api huma.API, app *app.Application) {
-	projectHTTP := adapters.NewHuma(api, app)
+func setupHTTPHandlers(api huma.API, app *app.Application, logger *slog.Logger) {
+	projectHTTP := adapters.NewHuma(api, app, logger)
 	projectHTTP.Register()
 }
 

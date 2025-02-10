@@ -1,8 +1,12 @@
 export { changeTaskStatusSchema } from './changeTaskStatusSchema.ts'
+export { chatWithProjectSchema } from './chatWithProjectSchema.ts'
+export { contentSchema } from './contentSchema.ts'
 export { errorDetailSchema } from './errorDetailSchema.ts'
 export { errorModelSchema } from './errorModelSchema.ts'
 export { fileSchema } from './fileSchema.ts'
 export { listTasksSchema } from './listTasksSchema.ts'
+export { messageSchema } from './messageSchema.ts'
+export { projectChat200Schema, projectChatErrorSchema, projectChatMutationRequestSchema, projectChatMutationResponseSchema } from './projectChatSchema.ts'
 export {
   taskChangeStatusPathParamsSchema,
   taskChangeStatus204Schema,
