@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/DeluxeOwl/cogniboard/internal/openaiproxy"
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/commands"
@@ -35,6 +36,13 @@ func (h *Huma) Register() {
 		Summary:      "Create a task",
 		MaxBodyBytes: maxBodyBytes,
 	}, h.createTask)
+
+	huma.Register(h.api, huma.Operation{
+		OperationID: "project-chat",
+		Method:      http.MethodPost,
+		Path:        "/chat",
+		Summary:     "Chat about your project",
+	}, h.projectChat)
 
 	huma.Register(h.api, huma.Operation{
 		OperationID: "tasks",
@@ -68,6 +76,36 @@ func handleError(err error) error {
 }
 
 // In DTOs - for input adapters: e.g REST api
+
+func (h *Huma) projectChat(ctx context.Context, input *struct{ Body openaiproxy.ChatRequest }) (*huma.StreamResponse, error) {
+	return &huma.StreamResponse{
+		Body: func(ctx huma.Context) {
+			// Write header info before streaming the body.
+			ctx.SetHeader("Content-Type", "text/my-stream")
+			writer := ctx.BodyWriter()
+
+			// Update the write deadline to give us extra time.
+			if d, ok := writer.(interface{ SetWriteDeadline(time.Time) error }); ok {
+				d.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			} else {
+				fmt.Println("warning: unable to set write deadline")
+			}
+
+			// Write the first message, then flush and wait.
+			writer.Write([]byte("Hello, I'm streaming!"))
+			if f, ok := writer.(http.Flusher); ok {
+				f.Flush()
+			} else {
+				fmt.Println("error: unable to flush")
+			}
+
+			time.Sleep(3 * time.Second)
+
+			// Write the second message.
+			writer.Write([]byte("Hello, I'm still streaming!"))
+		},
+	}, nil
+}
 
 // note: huma doesnt play well with struct embedding
 type CreateTask struct {
