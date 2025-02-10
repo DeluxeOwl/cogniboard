@@ -11,6 +11,15 @@ import {
 import type { DragEndEvent } from "./project/kanban.ts";
 import AddTaskDialog from "./project/task.add";
 import EditTaskDialog from "./project/task.edit";
+import { Button } from "@/components/ui/button.tsx";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "@/components/ui/sheet.tsx";
 
 function useHome() {
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -66,8 +75,26 @@ const Home = () => {
 
 	return (
 		<main className="p-2">
-			<span className="ms-4">
+			<span className="flex justify-between mx-4">
 				<AddTaskDialog />
+				<Sheet>
+					<SheetTrigger asChild>
+						<Button
+							className="bg-orange-600 hover:bg-orange-500"
+							variant="default"
+						>
+							Start chatting
+						</Button>
+					</SheetTrigger>
+					<SheetContent>
+						<SheetHeader>
+							<SheetTitle>Chat about your project</SheetTitle>
+							<SheetDescription>
+								Ask questions about tasks, uploaded documents, assignees etc.
+							</SheetDescription>
+						</SheetHeader>
+					</SheetContent>
+				</Sheet>
 			</span>
 			{selectedTask && (
 				<EditTaskDialog
