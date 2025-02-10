@@ -87,7 +87,7 @@ func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body queries.
 			writer := ctx.BodyWriter()
 
 			if d, ok := writer.(interface{ SetWriteDeadline(time.Time) error }); ok {
-				d.SetWriteDeadline(time.Now().Add(5 * time.Second))
+				d.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			}
 
 			stream, err := h.app.Queries.ChatWithProject.Handle(ctx.Context(), queries.ChatWithProject{

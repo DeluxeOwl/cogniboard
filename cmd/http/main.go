@@ -58,8 +58,6 @@ func main() {
 		// Uncomment if you want to proxy everything to openai directly, see below
 		// setupProxy(logger, e, options.OpenaiCompatibleEndpoint, options.LLMKey)
 
-		litter.Dump(options)
-
 		api := setupAPI(e, options.Host)
 
 		fileStorage := setupFileStorage(ctx, options.FileDir)
