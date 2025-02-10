@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -12,7 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewProxy(openAICompatibleEndpoint string, apiKey string, prefix string) (*httputil.ReverseProxy, error) {
+func NewProxy(logger *slog.Logger, openAICompatibleEndpoint string, apiKey string, prefix string) (*httputil.ReverseProxy, error) {
 	if openAICompatibleEndpoint == "" {
 		return nil, errors.New("empty endpoint")
 	}
@@ -30,6 +31,12 @@ func NewProxy(openAICompatibleEndpoint string, apiKey string, prefix string) (*h
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
+
+		// Preserve the original Origin header
+		if origin := req.Header.Get("Origin"); origin != "" {
+			req.Header.Set("Origin", origin)
+		}
+
 		// Check if the request has an valid Authorization header.
 		// If not or if the provided token is "null", then overwrite it.
 		auth := req.Header.Get("Authorization")
@@ -47,7 +54,7 @@ func NewProxy(openAICompatibleEndpoint string, apiKey string, prefix string) (*h
 	}
 
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-		// TODO: add some logging
+		logger.Error("proxy error", "err", err)
 		if errors.Is(err, io.EOF) || strings.Contains(err.Error(), "closed") {
 			// Connection closed by client, we can ignore this
 			return
@@ -56,19 +63,40 @@ func NewProxy(openAICompatibleEndpoint string, apiKey string, prefix string) (*h
 		w.Write([]byte(fmt.Sprintf("Proxy error: %v", err)))
 	}
 
+	proxy.ModifyResponse = func(r *http.Response) error {
+		logger.Info("Received response from upstream",
+			"status", r.StatusCode,
+			"content-type", r.Header.Get("Content-Type"),
+			"content-length", r.Header.Get("Content-Length"))
+
+		// Remove any CORS headers from the upstream response
+		r.Header.Del("Access-Control-Allow-Origin")
+		r.Header.Del("Access-Control-Allow-Methods")
+		r.Header.Del("Access-Control-Allow-Headers")
+		r.Header.Del("Access-Control-Allow-Credentials")
+		r.Header.Del("Access-Control-Expose-Headers")
+
+		r.Header.Set("Content-Type", "text/event-stream")
+		r.Header.Set("Cache-Control", "no-cache")
+		r.Header.Set("Connection", "keep-alive")
+		r.Header.Del("Content-Length") // Remove content-length for streaming
+
+		return nil
+	}
+
 	return proxy, nil
 }
 
-type FlushWriter struct {
+type flushWriter struct {
 	w      http.ResponseWriter
 	status int
 }
 
-func (fw *FlushWriter) Header() http.Header {
+func (fw *flushWriter) Header() http.Header {
 	return fw.w.Header()
 }
 
-func (fw *FlushWriter) Write(p []byte) (n int, err error) {
+func (fw *flushWriter) Write(p []byte) (n int, err error) {
 	if fw.status == 0 {
 		fw.WriteHeader(http.StatusOK)
 	}
@@ -82,17 +110,23 @@ func (fw *FlushWriter) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-func (fw *FlushWriter) WriteHeader(status int) {
+func (fw *flushWriter) WriteHeader(status int) {
 	if fw.status == 0 {
 		fw.status = status
 		fw.w.WriteHeader(status)
 	}
 }
 
-func NewEchoHandlerWithSSE(proxy *httputil.ReverseProxy) echo.HandlerFunc {
+func NewEchoHandlerWithSSE(logger *slog.Logger, proxy *httputil.ReverseProxy) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// Remove the CORS handling here since it's already handled by the middleware
 		isStreaming := strings.Contains(c.Request().Header.Get("Accept"), "text/event-stream") ||
 			c.QueryParam("stream") == "true"
+
+		logger.Debug("received request",
+			"method", c.Request().Method,
+			"path", c.Request().URL.Path,
+			"streaming", isStreaming)
 
 		if isStreaming {
 			c.Response().Header().Set("Content-Type", "text/event-stream")
@@ -101,7 +135,7 @@ func NewEchoHandlerWithSSE(proxy *httputil.ReverseProxy) echo.HandlerFunc {
 			c.Response().Header().Set("Transfer-Encoding", "chunked")
 		}
 
-		fw := &FlushWriter{w: c.Response().Writer}
+		fw := &flushWriter{w: c.Response().Writer}
 		proxy.ServeHTTP(fw, c.Request())
 
 		return nil

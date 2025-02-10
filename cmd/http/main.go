@@ -51,9 +51,9 @@ func main() {
 
 	cli := humacli.New(func(hooks humacli.Hooks, options *Options) {
 		e := setupEcho()
-		setupProxy(e, options.OpenaiCompatibleEndpoint, options.LLMKey)
-		api := setupAPI(e, options.Host)
 		logger := setupLogger(options.Env)
+		setupProxy(logger, e, options.OpenaiCompatibleEndpoint, options.LLMKey)
+		api := setupAPI(e, options.Host)
 
 		fileStorage := setupFileStorage(ctx, options.FileDir)
 		app := setupApplication(ctx, options.PostgresDSN, logger, fileStorage)
@@ -69,20 +69,23 @@ func main() {
 	cli.Run()
 }
 
-func setupProxy(e *echo.Echo, endpoint string, key string) {
-	proxy, err := openaiproxy.NewProxy(endpoint, key, "/chat")
+func setupProxy(logger *slog.Logger, e *echo.Echo, endpoint string, key string) {
+	proxy, err := openaiproxy.NewProxy(logger, endpoint, key, "/chat")
 	if err != nil {
 		panic(err)
 	}
 
 	chatGroup := e.Group("/chat")
-	chatGroup.Any("/*", openaiproxy.NewEchoHandlerWithSSE(proxy))
+	chatGroup.Any("/*", openaiproxy.NewEchoHandlerWithSSE(logger, proxy))
 }
 
 func setupEcho() *echo.Echo {
 	e := echo.New()
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:5173"}, // TODO: hardcoded
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowCredentials: true,
+		AllowHeaders:     []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "Authorization"},
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodOptions},
 	}))
 	v1 := e.Group("/" + APIVersion)
 
