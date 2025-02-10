@@ -18,11 +18,11 @@ import {
 import type { ReactNode } from "react";
 
 const AIModel = "o3-mini";
-
+const BaseChatURL = "http://127.0.0.1:8888/chat";
 const MyModelAdapter: ChatModelAdapter = {
 	async *run({ messages, abortSignal, context }) {
 		try {
-			const response = await fetch("http://127.0.0.1:8888/chat/v1/chat/completions", {
+			const response = await fetch(`${BaseChatURL}/v1/chat/completions`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
