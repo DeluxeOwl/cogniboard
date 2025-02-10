@@ -21,6 +21,7 @@ import {
 	SheetTrigger,
 } from "@/components/ui/sheet.tsx";
 import { LucideBot } from "lucide-react";
+import Chat from "./project/chat.tsx";
 
 function useHome() {
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -95,6 +96,7 @@ const Home = () => {
 								Ask questions about tasks, uploaded documents, assignees etc.
 							</SheetDescription>
 						</SheetHeader>
+						<Chat />
 					</SheetContent>
 				</Sheet>
 			</span>
