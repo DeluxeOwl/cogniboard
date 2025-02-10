@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/DeluxeOwl/cogniboard/internal/openaiproxy"
 	"github.com/DeluxeOwl/cogniboard/internal/postgres"
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/adapters"
@@ -30,10 +31,12 @@ const (
 )
 
 type Options struct {
-	PostgresDSN string `help:"The postgres connection string"`
-	Host        string `help:"The host:port to listen on" default:"127.0.0.1:8888"`
-	Env         string `help:"The environment to run in" default:"dev"`
-	FileDir     string `help:"Directory for storing task files" default:"./cogniboardfiles"`
+	LLMKey                   string `help:"The api key for the openai compatible endpoint"`
+	OpenaiCompatibleEndpoint string `help:"The openai compatible endpoint"`
+	PostgresDSN              string `help:"The postgres connection string"`
+	Host                     string `help:"The host:port to listen on" default:"127.0.0.1:8888"`
+	Env                      string `help:"The environment to run in" default:"dev"`
+	FileDir                  string `help:"Directory for storing task files" default:"./cogniboardfiles"`
 }
 
 func main() {
@@ -48,6 +51,7 @@ func main() {
 
 	cli := humacli.New(func(hooks humacli.Hooks, options *Options) {
 		e := setupEcho()
+		setupProxy(e, options.OpenaiCompatibleEndpoint, options.LLMKey)
 		api := setupAPI(e, options.Host)
 		logger := setupLogger(options.Env)
 
@@ -63,6 +67,16 @@ func main() {
 	})
 
 	cli.Run()
+}
+
+func setupProxy(e *echo.Echo, endpoint string, key string) {
+	proxy, err := openaiproxy.NewProxy(endpoint, key, "/chat")
+	if err != nil {
+		panic(err)
+	}
+
+	chatGroup := e.Group("/chat")
+	chatGroup.Any("/*", echo.WrapHandler(proxy))
 }
 
 func setupEcho() *echo.Echo {
