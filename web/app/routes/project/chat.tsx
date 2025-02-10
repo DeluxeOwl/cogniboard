@@ -17,6 +17,8 @@ import {
 } from "@assistant-ui/react";
 import type { ReactNode } from "react";
 
+const AIModel = "o3-mini";
+
 const MyModelAdapter: ChatModelAdapter = {
 	async *run({ messages, abortSignal, context }) {
 		try {
@@ -27,7 +29,7 @@ const MyModelAdapter: ChatModelAdapter = {
 					Accept: "text/event-stream",
 				},
 				body: JSON.stringify({
-					model: "o3-mini",
+					model: AIModel,
 					stream: true,
 					messages: messages.map((msg) => ({
 						role: msg.role,
