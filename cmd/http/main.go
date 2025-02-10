@@ -76,7 +76,7 @@ func setupProxy(e *echo.Echo, endpoint string, key string) {
 	}
 
 	chatGroup := e.Group("/chat")
-	chatGroup.Any("/*", echo.WrapHandler(proxy))
+	chatGroup.Any("/*", openaiproxy.NewEchoHandlerWithSSE(proxy))
 }
 
 func setupEcho() *echo.Echo {
