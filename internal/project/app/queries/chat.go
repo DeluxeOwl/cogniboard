@@ -5,24 +5,21 @@ import (
 	"log/slog"
 
 	"github.com/DeluxeOwl/cogniboard/internal/decorator"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/packages/ssestream"
 )
 
+// Message represents a chat message
 type Message struct {
 	Role    string    `json:"role"`
 	Content []Content `json:"content"`
 }
 
+// Content represents message content
 type Content struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
 }
 
-type ChatWithProject struct {
-	Messages []Message `json:"messages"`
-}
-
+// StreamingChunk represents a stream of chat completion chunks
 type StreamingChunk interface {
 	Close() error
 	Current() []byte
@@ -30,73 +27,36 @@ type StreamingChunk interface {
 	Next() bool
 }
 
-type streamingChunk struct {
-	stream *ssestream.Stream[openai.ChatCompletionChunk]
+// ChatService defines the interface for chat operations
+type ChatService interface {
+	StreamChat(ctx context.Context, messages []Message) (StreamingChunk, error)
 }
 
-func (sc *streamingChunk) Close() error {
-	return sc.stream.Close()
+// ChatWithProject represents a chat query with project context
+type ChatWithProject struct {
+	Messages []Message `json:"messages"`
 }
 
-func (sc *streamingChunk) Current() []byte {
-	chunk := sc.stream.Current()
-	json := chunk.JSON.RawJSON()
-
-	rawByteChunk := make([]byte, 0, len(json)+1)
-	rawByteChunk = append(rawByteChunk, json...)
-	rawByteChunk = append(rawByteChunk, '\n')
-
-	return rawByteChunk
-}
-
-func (sc *streamingChunk) Err() error {
-	return sc.stream.Err()
-}
-
-func (sc *streamingChunk) Next() bool {
-	return sc.stream.Next()
-}
-
+// ChatWithProjectHandler handles chat queries
 type ChatWithProjectHandler decorator.QueryHandler[ChatWithProject, StreamingChunk]
 
 type chatWithProjectHandler struct {
-	client *openai.Client
+	chatService ChatService
 }
 
+// ChatWithProjectReadModel defines the interface for reading chat interactions
 type ChatWithProjectReadModel interface {
 	ChatWithProject(ctx context.Context) (StreamingChunk, error)
 }
 
-func NewChatWithProjectHandler(client *openai.Client, logger *slog.Logger) ChatWithProjectHandler {
+// NewChatWithProjectHandler creates a new chat query handler
+func NewChatWithProjectHandler(chatService ChatService, logger *slog.Logger) ChatWithProjectHandler {
 	return decorator.ApplyQueryDecorators(
-		&chatWithProjectHandler{client: client},
+		&chatWithProjectHandler{chatService: chatService},
 		logger,
 	)
 }
 
-func convertMessages(rawMessages []Message) []openai.ChatCompletionMessageParamUnion {
-	messages := make([]openai.ChatCompletionMessageParamUnion, len(rawMessages))
-	for i, msg := range rawMessages {
-		isUser := msg.Role == "user"
-		for _, content := range msg.Content {
-			if isUser {
-				messages[i] = openai.UserMessage(content.Text)
-			} else {
-				messages[i] = openai.AssistantMessage(content.Text)
-			}
-		}
-
-	}
-	return messages
-}
-
 func (h *chatWithProjectHandler) Handle(ctx context.Context, query ChatWithProject) (StreamingChunk, error) {
-	stream := h.client.Chat.Completions.NewStreaming(ctx, openai.ChatCompletionNewParams{
-		Messages: openai.F(convertMessages(query.Messages)),
-		Model:    openai.F(openai.ChatModelO3Mini),
-	})
-
-	return &streamingChunk{
-		stream: stream,
-	}, nil
+	return h.chatService.StreamChat(ctx, query.Messages)
 }

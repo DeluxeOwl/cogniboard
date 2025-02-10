@@ -158,7 +158,12 @@ func setupApplication(ctx context.Context,
 		option.WithBaseURL(openAICompatibleEndpoint),
 	)
 
-	app, err := app.New(repo, logger, fileStorage, openaiClient)
+	// Create OpenAI adapter with configuration
+	chatService := adapters.NewOpenAIAdapter(openaiClient, adapters.OpenAIConfig{
+		Model: openai.ChatModelO3Mini,
+	})
+
+	app, err := app.New(repo, logger, fileStorage, chatService)
 	if err != nil {
 		panic(err)
 	}
