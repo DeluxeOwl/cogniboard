@@ -1,6 +1,6 @@
 import { Thread } from "@/components/assistant-ui/thread";
 export default function Chat() {
-	const runtime = useLocalRuntime(MyModelAdapter);
+	const runtime = useLocalRuntime(OpenAIProxyAdapter);
 	return (
 		<AssistantRuntimeProvider runtime={runtime}>
 			<div className="h-full pb-12">
@@ -19,7 +19,7 @@ import type { ReactNode } from "react";
 
 const AIModel = "o3-mini";
 const BaseChatURL = "http://127.0.0.1:8888/chat";
-const MyModelAdapter: ChatModelAdapter = {
+const OpenAIProxyAdapter: ChatModelAdapter = {
 	async *run({ messages, abortSignal, context }) {
 		try {
 			const response = await fetch(`${BaseChatURL}/v1/chat/completions`, {
@@ -92,7 +92,7 @@ export function MyRuntimeProvider({
 }: Readonly<{
 	children: ReactNode;
 }>) {
-	const runtime = useLocalRuntime(MyModelAdapter);
+	const runtime = useLocalRuntime(OpenAIProxyAdapter);
 
 	return <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>;
 }
