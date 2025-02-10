@@ -2,7 +2,7 @@ import { fileSchema } from './fileSchema.ts'
 import { z } from 'zod'
 
 export const taskSchema = z.object({
-  asignee: z.string().nullable(),
+  assignee: z.string().nullable(),
   completed_at: z.string().datetime().nullable(),
   created_at: z.string().datetime(),
   description: z.string().nullable(),

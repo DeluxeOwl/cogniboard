@@ -4,7 +4,7 @@ export type Task = {
   /**
    * @type string
    */
-  asignee: string | null
+  assignee: string | null
   /**
    * @type string, date-time
    */

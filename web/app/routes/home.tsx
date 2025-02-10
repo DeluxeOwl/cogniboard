@@ -134,7 +134,7 @@ const Home = () => {
 													{feature.title}
 												</p>
 												<p className="m-0 text-muted-foreground text-xs">{feature.description}</p>
-												{feature.asignee && <p>Assigned to: {feature.asignee}</p>}
+												{feature.assignee && <p>Assigned to: {feature.assignee}</p>}
 											</div>
 										</div>
 										<p className="m-0 text-muted-foreground text-xs">
