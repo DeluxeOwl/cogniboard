@@ -31,7 +31,7 @@ func NewProxy(openAICompatibleEndpoint string, apiKey string, prefix string) (*h
 		// If not or if the provided token is "null", then overwrite it.
 		auth := req.Header.Get("Authorization")
 		if auth == "" || strings.Contains(strings.ToLower(auth), "null") {
-			req.Header.Set("Authorization", "Bearer "+apiKey)
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 		}
 
 		// Remove the prefix (e.g "/chat") from the incoming URL path.
