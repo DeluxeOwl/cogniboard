@@ -68,7 +68,7 @@ func (h *chatWithProjectHandler) Handle(ctx context.Context, query ChatWithProje
 			Content: []Content{
 				{
 					Type: "text",
-					Text: NewSystemPromptV2(time.Now()),
+					Text: NewSystemPrompt(time.Now()),
 				},
 			},
 		},
@@ -140,13 +140,5 @@ You should never:
 When uncertain about a request's scope, ask clarifying questions to determine if it falls within your project management purview. Default to a conservative interpretation of your role's boundaries. 
 
 Remember: Your primary goal is to facilitate project success through Agile principles and practices while maintaining clear professional boundaries.
-`, currentTime.String())
-}
-func NewSystemPromptV2(currentTime time.Time) string {
-	return fmt.Sprintf(`
-<context>
-The current time is %s
-</context>
-You're a helpful assistant
-`, currentTime.String())
+`, currentTime.Format("2006-01-02"))
 }
