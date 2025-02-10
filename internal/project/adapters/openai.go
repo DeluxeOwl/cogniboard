@@ -73,6 +73,8 @@ func convertMessages(messages []queries.Message) ([]openai.ChatCompletionMessage
 			}
 		}
 
+		// Has to be this way for non-openai providers compatibility
+		// Open AI does it like this now: {content:{type: text, text:"..."}}
 		switch msg.Role {
 		case RoleUser:
 			result = append(result, openai.ChatCompletionMessageParam{
