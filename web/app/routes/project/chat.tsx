@@ -89,7 +89,7 @@ const OpenAIProxyAdapter: ChatModelAdapter = {
 };
 
 const DeltaSchema = z.object({
-	content: z.string(),
+	content: z.string().optional(),
 });
 
 const ChoiceSchema = z.object({
@@ -103,9 +103,7 @@ const ChatResponseSchema = z.object({
 	object: z.string(),
 	created: z.number(),
 	model: z.string(),
-	service_tier: z.string(),
-	system_fingerprint: z.string(),
-	choices: z.array(ChoiceSchema),
+	choices: z.array(ChoiceSchema).optional(),
 });
 
 const OpenAIWithoutProxyAdapter: ChatModelAdapter = {
@@ -142,7 +140,7 @@ const OpenAIWithoutProxyAdapter: ChatModelAdapter = {
 				if (done) break;
 
 				const chunk = decoder.decode(value);
-				console.info(chunk);
+
 				buffer += chunk;
 
 				const lines = buffer.split("\n");
@@ -152,11 +150,11 @@ const OpenAIWithoutProxyAdapter: ChatModelAdapter = {
 					try {
 						const parsedData = ChatResponseSchema.parse(JSON.parse(line));
 
-						if (parsedData.choices[0].finish_reason !== null) {
+						if (parsedData.choices?.[0].finish_reason !== null) {
 							break;
 						}
 
-						const content = parsedData.choices[0]?.delta?.content;
+						const content = parsedData.choices?.[0]?.delta?.content;
 						if (content) {
 							accumulatedText += content;
 							yield {
