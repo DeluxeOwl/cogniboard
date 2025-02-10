@@ -32,6 +32,12 @@ func NewProxy(logger *slog.Logger, openAICompatibleEndpoint string, apiKey strin
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
 
+		// Processes the request body if it is a chat message.
+		processor := NewChatBodyProcessor(logger)
+		if err := ProcessRequestBody(req, processor); err != nil {
+			logger.Error("failed to process request body", "err", err)
+		}
+
 		// Preserve the original Origin header
 		if origin := req.Header.Get("Origin"); origin != "" {
 			req.Header.Set("Origin", origin)
