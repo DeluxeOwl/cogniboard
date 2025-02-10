@@ -20,6 +20,7 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@/components/ui/sheet.tsx";
+import { LucideBot } from "lucide-react";
 
 function useHome() {
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -83,6 +84,7 @@ const Home = () => {
 							className="bg-orange-600 hover:bg-orange-500"
 							variant="default"
 						>
+							<LucideBot className="size-4 me-2" />
 							Start chatting
 						</Button>
 					</SheetTrigger>
