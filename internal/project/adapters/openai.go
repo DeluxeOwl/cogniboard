@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	RoleSystem    = "system"
 	RoleUser      = "user"
 	RoleAssistant = "assistant"
 )
@@ -60,24 +61,10 @@ func NewOpenAIAdapter(client *openai.Client, config OpenAIConfig) queries.ChatSe
 	}
 }
 
-func validateMessage(msg queries.Message) error {
-	if msg.Role != RoleUser && msg.Role != RoleAssistant {
-		return fmt.Errorf("invalid role: %s", msg.Role)
-	}
-	if len(msg.Content) == 0 {
-		return fmt.Errorf("message content cannot be empty")
-	}
-	return nil
-}
-
 func convertMessages(messages []queries.Message) ([]openai.ChatCompletionMessageParamUnion, error) {
 	result := make([]openai.ChatCompletionMessageParamUnion, 0, len(messages))
 
 	for _, msg := range messages {
-		if err := validateMessage(msg); err != nil {
-			return nil, fmt.Errorf("invalid message: %w", err)
-		}
-
 		var combinedText strings.Builder
 		for _, content := range msg.Content {
 			if content.Type == "text" {
@@ -86,10 +73,15 @@ func convertMessages(messages []queries.Message) ([]openai.ChatCompletionMessage
 			}
 		}
 
-		if msg.Role == RoleUser {
+		switch msg.Role {
+		case RoleUser:
 			result = append(result, openai.UserMessage(combinedText.String()))
-		} else {
+		case RoleAssistant:
 			result = append(result, openai.AssistantMessage(combinedText.String()))
+		case RoleSystem:
+			result = append(result, openai.SystemMessage(combinedText.String()))
+		default:
+			return nil, fmt.Errorf("unknown role: %s", msg.Role)
 		}
 	}
 
