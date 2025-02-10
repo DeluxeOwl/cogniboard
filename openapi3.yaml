@@ -16,6 +16,34 @@ components:
       required:
         - status
       type: object
+    ChatRequest:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: http://127.0.0.1:8888/v1/api/schemas/ChatRequest.json
+          format: uri
+          readOnly: true
+          type: string
+        messages:
+          items:
+            $ref: "#/components/schemas/Message"
+          nullable: true
+          type: array
+      required:
+        - messages
+      type: object
+    Content:
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+        type:
+          type: string
+      required:
+        - type
+        - text
+      type: object
     ErrorDetail:
       additionalProperties: false
       properties:
@@ -107,6 +135,20 @@ components:
       required:
         - tasks
       type: object
+    Message:
+      additionalProperties: false
+      properties:
+        content:
+          items:
+            $ref: "#/components/schemas/Content"
+          nullable: true
+          type: array
+        role:
+          type: string
+      required:
+        - role
+        - content
+      type: object
     Task:
       additionalProperties: false
       properties:
@@ -158,6 +200,25 @@ info:
   version: 0.0.1
 openapi: 3.0.3
 paths:
+  /chat:
+    post:
+      operationId: project-chat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      summary: Chat about your project
   /tasks:
     get:
       operationId: tasks

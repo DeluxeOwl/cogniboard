@@ -7,11 +7,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/DeluxeOwl/cogniboard/internal/openaiproxy"
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/commands"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
 // Huma handles HTTP requests using the huma framework
@@ -77,7 +78,37 @@ func handleError(err error) error {
 
 // In DTOs - for input adapters: e.g REST api
 
-func (h *Huma) projectChat(ctx context.Context, input *struct{ Body openaiproxy.ChatRequest }) (*huma.StreamResponse, error) {
+func chatReqToParams(body ChatRequest) []openai.ChatCompletionMessageParamUnion {
+	messages := make([]openai.ChatCompletionMessageParamUnion, len(body.Messages))
+	for i, msg := range body.Messages {
+		isUser := msg.Role == "user"
+		for _, content := range msg.Content {
+			if isUser {
+				messages[i] = openai.UserMessage(content.Text)
+			} else {
+				messages[i] = openai.AssistantMessage(content.Text)
+			}
+		}
+
+	}
+	return messages
+}
+
+type Message struct {
+	Role    string    `json:"role"`
+	Content []Content `json:"content"`
+}
+
+type Content struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type ChatRequest struct {
+	Messages []Message `json:"messages"`
+}
+
+func (h *Huma) projectChat(ctx context.Context, input *struct{ Body ChatRequest }) (*huma.StreamResponse, error) {
 	return &huma.StreamResponse{
 		Body: func(ctx huma.Context) {
 			// Write header info before streaming the body.
@@ -87,22 +118,33 @@ func (h *Huma) projectChat(ctx context.Context, input *struct{ Body openaiproxy.
 			// Update the write deadline to give us extra time.
 			if d, ok := writer.(interface{ SetWriteDeadline(time.Time) error }); ok {
 				d.SetWriteDeadline(time.Now().Add(5 * time.Second))
-			} else {
-				fmt.Println("warning: unable to set write deadline")
 			}
 
-			// Write the first message, then flush and wait.
-			writer.Write([]byte("Hello, I'm streaming!"))
-			if f, ok := writer.(http.Flusher); ok {
-				f.Flush()
-			} else {
-				fmt.Println("error: unable to flush")
+			key := "add key"
+			client := openai.NewClient(
+				option.WithAPIKey(key),
+			)
+
+			stream := client.Chat.Completions.NewStreaming(ctx.Context(), openai.ChatCompletionNewParams{
+				Messages: openai.F(chatReqToParams(input.Body)),
+				Model:    openai.F(openai.ChatModelO3Mini),
+			})
+
+			for stream.Next() {
+				chunk := stream.Current()
+				json := chunk.JSON.RawJSON()
+
+				rawByteChunk := make([]byte, 0, len(json)+1)
+				rawByteChunk = append(rawByteChunk, json...)
+				rawByteChunk = append(rawByteChunk, '\n')
+
+				writer.Write(rawByteChunk)
+				if f, ok := writer.(http.Flusher); ok {
+					f.Flush()
+				} else {
+					fmt.Println("error: unable to flush")
+				}
 			}
-
-			time.Sleep(3 * time.Second)
-
-			// Write the second message.
-			writer.Write([]byte("Hello, I'm still streaming!"))
 		},
 	}, nil
 }

@@ -1,6 +1,13 @@
 import { Thread } from "@/components/assistant-ui/thread";
+import {
+	AssistantRuntimeProvider,
+	useLocalRuntime,
+	type ChatModelAdapter,
+} from "@assistant-ui/react";
+import { z } from "zod";
+
 export default function Chat() {
-	const runtime = useLocalRuntime(OpenAIProxyAdapter);
+	const runtime = useLocalRuntime(OpenAIWithoutProxyAdapter);
 	return (
 		<AssistantRuntimeProvider runtime={runtime}>
 			<div className="h-full pb-12">
@@ -10,19 +17,13 @@ export default function Chat() {
 	);
 }
 
-import {
-	AssistantRuntimeProvider,
-	useLocalRuntime,
-	type ChatModelAdapter,
-} from "@assistant-ui/react";
-import type { ReactNode } from "react";
-
 const AIModel = "o3-mini";
-const BaseChatURL = "http://127.0.0.1:8888/chat";
+const BaseURL = "http://127.0.0.1:8888";
+// Use this if you're just proxying openai calls, see proxy.go
 const OpenAIProxyAdapter: ChatModelAdapter = {
 	async *run({ messages, abortSignal, context }) {
 		try {
-			const response = await fetch(`${BaseChatURL}/v1/chat/completions`, {
+			const response = await fetch(`${BaseURL}/chat/v1/chat/completions`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -87,12 +88,94 @@ const OpenAIProxyAdapter: ChatModelAdapter = {
 	},
 };
 
-export function MyRuntimeProvider({
-	children,
-}: Readonly<{
-	children: ReactNode;
-}>) {
-	const runtime = useLocalRuntime(OpenAIProxyAdapter);
+const DeltaSchema = z.object({
+	content: z.string(),
+});
 
-	return <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>;
-}
+const ChoiceSchema = z.object({
+	index: z.number(),
+	delta: DeltaSchema,
+	finish_reason: z.string().nullable(),
+});
+
+const ChatResponseSchema = z.object({
+	id: z.string(),
+	object: z.string(),
+	created: z.number(),
+	model: z.string(),
+	service_tier: z.string(),
+	system_fingerprint: z.string(),
+	choices: z.array(ChoiceSchema),
+});
+
+// Types inferred from Zod schemas
+type ChatResponse = z.infer<typeof ChatResponseSchema>;
+type Choice = z.infer<typeof ChoiceSchema>;
+type Delta = z.infer<typeof DeltaSchema>;
+
+const OpenAIWithoutProxyAdapter: ChatModelAdapter = {
+	async *run({ messages, abortSignal, context }) {
+		try {
+			const response = await fetch(`${BaseURL}/v1/api/chat`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "text/event-stream",
+				},
+				body: JSON.stringify({
+					messages: messages.map((msg) => ({
+						role: msg.role,
+						content: msg.content,
+					})),
+				}),
+				signal: abortSignal,
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+
+			const reader = response.body?.getReader();
+			if (!reader) throw new Error("No response body");
+
+			const decoder = new TextDecoder();
+			let buffer = "";
+			let accumulatedText = "";
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				const chunk = decoder.decode(value);
+				console.info(chunk);
+				buffer += chunk;
+
+				const lines = buffer.split("\n");
+				buffer = lines.pop() || "";
+
+				for (const line of lines) {
+					try {
+						const parsedData = ChatResponseSchema.parse(JSON.parse(line));
+
+						if (parsedData.choices[0].finish_reason !== null) {
+							break;
+						}
+
+						const content = parsedData.choices[0]?.delta?.content;
+						if (content) {
+							accumulatedText += content;
+							yield {
+								content: [{ type: "text", text: accumulatedText }],
+							};
+						}
+					} catch (e) {
+						console.error("Error parsing or validating line:", line, e);
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Error in chat request:", error);
+			throw error;
+		}
+	},
+};
