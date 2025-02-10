@@ -12,8 +12,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { assignees } from "../home";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import type { z } from "zod";
 
 import { taskCreateMutationRequestSchema, tasksQueryKey } from "@/api";
@@ -38,6 +46,7 @@ export default function AddTaskDialog() {
 		watch,
 		setValue,
 		setError,
+		control,
 	} = form;
 
 	const title = watch("title");
@@ -97,6 +106,42 @@ export default function AddTaskDialog() {
 										</p>
 									)}
 								</div>
+							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-assignee`}>Assignee</Label>
+								<Controller
+									control={control}
+									name="assignee_name"
+									render={({ field }) => (
+										<Select
+											name={field.name}
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+											value={field.value}
+										>
+											<SelectTrigger className="w-full">
+												<SelectValue placeholder="Select assignee" />
+											</SelectTrigger>
+											<SelectContent>
+												{assignees.map((assignee) => (
+													<SelectItem
+														key={assignee}
+														value={assignee}
+													>
+														{assignee}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									)}
+								/>
+
+								{errors.assignee_name && (
+									<p className="text-sm text-destructive">
+										{errors.assignee_name.message?.toString()}
+									</p>
+								)}
 							</div>
 
 							<div className="space-y-2">
@@ -193,6 +238,7 @@ export function useAddTask({ onSuccess }: UseAddTaskProps = {}) {
 			title: "Water the flowers",
 			description: "",
 			files: [],
+			assignee_name: "",
 		},
 	});
 

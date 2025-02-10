@@ -22,7 +22,7 @@ func TestNewTask(t *testing.T) {
 		assert.Equal(t, title, task.title)
 		assert.Equal(t, &description, task.description)
 		assert.Equal(t, &dueDate, task.dueDate)
-		assert.Equal(t, &assigneeName, task.asigneeName)
+		assert.Equal(t, &assigneeName, task.assigneeName)
 		assert.Equal(t, TaskStatusPending, task.status)
 	})
 
@@ -99,7 +99,7 @@ func TestTaskEdit(t *testing.T) {
 		assert.Equal(t, newTitle, task.title)
 		assert.Equal(t, &newDesc, task.description)
 		assert.Equal(t, &newDueDate, task.dueDate)
-		assert.Equal(t, &newAssignee, task.asigneeName)
+		assert.Equal(t, &newAssignee, task.assigneeName)
 		assert.Equal(t, newStatus, task.status)
 	})
 
@@ -107,7 +107,7 @@ func TestTaskEdit(t *testing.T) {
 		task := createValidTask(t)
 		originalDesc := task.description
 		originalDueDate := task.dueDate
-		originalAssignee := task.asigneeName
+		originalAssignee := task.assigneeName
 		originalStatus := task.status
 
 		newTitle := "Updated Title"
@@ -117,7 +117,7 @@ func TestTaskEdit(t *testing.T) {
 		assert.Equal(t, newTitle, task.title)
 		assert.Equal(t, originalDesc, task.description)
 		assert.Equal(t, originalDueDate, task.dueDate)
-		assert.Equal(t, originalAssignee, task.asigneeName)
+		assert.Equal(t, originalAssignee, task.assigneeName)
 		assert.Equal(t, originalStatus, task.status)
 	})
 

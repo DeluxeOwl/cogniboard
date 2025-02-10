@@ -110,7 +110,7 @@ components:
     Task:
       additionalProperties: false
       properties:
-        asignee:
+        assignee:
           nullable: true
           type: string
         completed_at:
@@ -147,7 +147,7 @@ components:
         - title
         - description
         - due_date
-        - asignee
+        - assignee
         - created_at
         - updated_at
         - completed_at

@@ -30,16 +30,16 @@ const (
 )
 
 type Task struct {
-	id          TaskID
-	title       string
-	description *string
-	dueDate     *time.Time
-	asigneeName *string
-	createdAt   time.Time
-	updatedAt   time.Time
-	completedAt *time.Time
-	status      TaskStatus
-	files       []File
+	id           TaskID
+	title        string
+	description  *string
+	dueDate      *time.Time
+	assigneeName *string
+	createdAt    time.Time
+	updatedAt    time.Time
+	completedAt  *time.Time
+	status       TaskStatus
+	files        []File
 }
 
 func NewTaskID() (TaskID, error) {
@@ -76,15 +76,15 @@ func NewTask(id TaskID, title string, description *string, dueDate *time.Time, a
 
 	now := time.Now()
 	task := &Task{
-		id:          id,
-		createdAt:   now,
-		updatedAt:   now,
-		dueDate:     dueDate,
-		asigneeName: assigneeName,
-		title:       title,
-		description: description,
-		status:      TaskStatusPending,
-		files:       make([]File, 0),
+		id:           id,
+		createdAt:    now,
+		updatedAt:    now,
+		dueDate:      dueDate,
+		assigneeName: assigneeName,
+		title:        title,
+		description:  description,
+		status:       TaskStatusPending,
+		files:        make([]File, 0),
 	}
 	return task, nil
 }
@@ -118,7 +118,7 @@ func (t *Task) Edit(title *string, description *string, dueDate *time.Time, assi
 	}
 
 	if assigneeName != nil {
-		t.asigneeName = assigneeName
+		t.assigneeName = assigneeName
 	}
 
 	if status != nil {
@@ -151,7 +151,7 @@ type TaskSnapshot struct {
 	Title       string     `json:"title"`
 	Description *string    `json:"description"`
 	DueDate     *time.Time `json:"due_date"`
-	Asignee     *string    `json:"asignee"`
+	Assignee    *string    `json:"assignee"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 	CompletedAt *time.Time `json:"completed_at"`
@@ -166,7 +166,7 @@ func (t *Task) GetSnapshot() *TaskSnapshot {
 		Title:       t.title,
 		Description: t.description,
 		DueDate:     t.dueDate,
-		Asignee:     t.asigneeName,
+		Assignee:    t.assigneeName,
 		CreatedAt:   t.createdAt,
 		UpdatedAt:   t.updatedAt,
 		CompletedAt: t.completedAt,

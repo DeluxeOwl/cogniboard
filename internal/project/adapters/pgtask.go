@@ -69,7 +69,7 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task)
 		SetID(string(t.ID)).
 		SetTitle(t.Title).
 		SetCreatedAt(t.CreatedAt).
-		SetNillableAssigneeName(t.Asignee).
+		SetNillableAssigneeName(t.Assignee).
 		SetNillableCompletedAt(t.CompletedAt).
 		SetNillableDescription(t.Description).
 		SetNillableDueDate(t.DueDate).
@@ -120,7 +120,7 @@ func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.Task
 			SetTitle(snap.Title).
 			SetNillableDescription(snap.Description).
 			SetNillableDueDate(snap.DueDate).
-			SetNillableAssigneeName(snap.Asignee).
+			SetNillableAssigneeName(snap.Assignee).
 			SetNillableCompletedAt(snap.CompletedAt).
 			SetStatus(task.Status(snap.Status)).
 			SetUpdatedAt(snap.UpdatedAt).

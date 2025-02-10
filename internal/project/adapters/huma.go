@@ -71,11 +71,11 @@ func handleError(err error) error {
 
 // note: huma doesnt play well with struct embedding
 type CreateTask struct {
-	Title        string          `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
-	Description  string          `form:"description" doc:"Task's description"`
-	DueDate      time.Time       `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
-	AssigneeName string          `form:"assignee_name" doc:"Task's asignee (if any)"`
-	Files        []huma.FormFile `form:"files"`
+	Title       string          `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
+	Description string          `form:"description" doc:"Task's description"`
+	DueDate     time.Time       `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
+	Assignee    string          `form:"assignee_name" doc:"Task's asignee (if any)"`
+	Files       []huma.FormFile `form:"files"`
 }
 
 func (h *Huma) createTask(ctx context.Context, input *struct {
@@ -101,8 +101,8 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 		cmd.DueDate = &data.DueDate
 	}
 
-	if data.AssigneeName != "" {
-		cmd.AssigneeName = &data.AssigneeName
+	if data.Assignee != "" {
+		cmd.AssigneeName = &data.Assignee
 	}
 
 	if data.Description != "" {

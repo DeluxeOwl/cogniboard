@@ -173,6 +173,8 @@ const statuses = [
 	{ id: "4", name: "completed", color: "#10B981" },
 ];
 
+export const assignees = ["John", "Mary", "Steve", "Laura", "Alex"];
+
 function useKanbanBoard() {
 	const queryClient = useQueryClient();
 
