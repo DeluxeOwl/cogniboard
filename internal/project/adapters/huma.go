@@ -96,16 +96,19 @@ func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body operatio
 				h.logger.Error("create stream", "err", err)
 			}
 
-			for stream.Next() {
-				chunk := stream.Current()
+			for chunk, err := range stream {
+				if err != nil {
+					return
+				}
 
 				writer.Write(chunk)
 				if f, ok := writer.(http.Flusher); ok {
 					f.Flush()
 				} else {
-					fmt.Println("error: unable to flush")
+					h.logger.Error("unable to flush", "err", err)
 				}
 			}
+
 		},
 	}, nil
 }

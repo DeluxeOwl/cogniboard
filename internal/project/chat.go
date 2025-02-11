@@ -4,14 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"iter"
 )
 
-type StreamingChunk interface {
-	Close() error
-	Current() []byte
-	Err() error
-	Next() bool
-}
+type StreamingChunk iter.Seq2[[]byte, error]
 
 type ChatTool interface {
 	isTool()
