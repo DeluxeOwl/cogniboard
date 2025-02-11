@@ -2,14 +2,12 @@ package adapters
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/operations"
 	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/packages/ssestream"
 	"github.com/openai/openai-go/shared"
 )
 
@@ -22,33 +20,6 @@ const (
 // OpenAIConfig holds configuration for the OpenAI client
 type OpenAIConfig struct {
 	Model string
-}
-
-type streamingChunk struct {
-	stream *ssestream.Stream[openai.ChatCompletionChunk]
-}
-
-func (sc *streamingChunk) Close() error {
-	return sc.stream.Close()
-}
-
-func (sc *streamingChunk) Current() []byte {
-	chunk := sc.stream.Current()
-	json := chunk.JSON.RawJSON()
-
-	rawByteChunk := make([]byte, 0, len(json)+1)
-	rawByteChunk = append(rawByteChunk, json...)
-	rawByteChunk = append(rawByteChunk, '\n')
-
-	return rawByteChunk
-}
-
-func (sc *streamingChunk) Err() error {
-	return sc.stream.Err()
-}
-
-func (sc *streamingChunk) Next() bool {
-	return sc.stream.Next()
 }
 
 type openAIAdapter struct {
@@ -113,58 +84,83 @@ func (a *openAIAdapter) StreamChat(ctx context.Context, messages []operations.Me
 		Model:    openai.F(a.config.Model),
 	}
 
-	hasTools := len(tools) != 0
-	if !hasTools {
+	if len(tools) > 0 {
+
+		openAIToolParams := make([]openai.ChatCompletionToolParam, len(tools))
+		for i, chatTool := range tools {
+			converted := convertChatTool(chatTool)
+			openAIToolParams[i] = *converted
+			fmt.Printf("[DEBUG] Tool %d: %s\n", i, chatTool.GetFuncName())
+		}
+		params.Tools = openai.F(openAIToolParams)
+	}
+
+	return func(yield func([]byte, error) bool) {
 		stream := a.client.Chat.Completions.NewStreaming(ctx, params)
+		defer stream.Close()
 
-		return &streamingChunk{
-			stream: stream,
-		}, nil
-	}
+		acc := openai.ChatCompletionAccumulator{}
+		extractor := NewToolCallExtractor()
 
-	openAIToolParams := make([]openai.ChatCompletionToolParam, len(tools))
-	for i, chatTool := range tools {
-		converted := convertChatTool(chatTool)
-		openAIToolParams[i] = *converted
-	}
-	params.Tools = openai.F(openAIToolParams)
+		for stream.Next() {
+			chunk := stream.Current()
 
-	stream := a.client.Chat.Completions.NewStreaming(ctx, params)
-	acc := openai.ChatCompletionAccumulator{}
-	extractor := NewToolCallExtractor()
-	for stream.Next() {
-		chunk := stream.Current()
-		acc.AddChunk(chunk)
+			acc.AddChunk(chunk)
 
-		extractor.ExtractToolCallsFromChoices(chunk.Choices)
+			// Convert current chunk to JSON bytes
+			json := chunk.JSON.RawJSON()
+			rawByteChunk := make([]byte, 0, len(json)+1)
+			rawByteChunk = append(rawByteChunk, json...)
+			rawByteChunk = append(rawByteChunk, '\n')
 
-		if tool, ok := acc.JustFinishedToolCall(); ok {
-			for _, providedTool := range tools {
-				providedToolFuncName := providedTool.GetFuncName()
+			fmt.Printf("[DEBUG] Raw chunk: %s\n", string(rawByteChunk))
 
-				if callID, ok := extractor.GetFunctionCallID(providedToolFuncName); ok {
-					result, err := providedTool.CallHandler(ctx, tool.Arguments)
-					if err != nil {
-						return nil, err
-					}
-
-					if delta, ok := extractor.GetDelta(providedToolFuncName); ok {
-						// Extract tool call into assistant message
-						assistantMsg := extractor.ExtractToolCallIntoAssistantMessage(delta)
-						params.Messages.Value = append(params.Messages.Value, assistantMsg)
-						params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(callID, result))
-
-					}
-				}
+			if !yield(rawByteChunk, nil) {
+				return
 			}
 
-			// Start a new stream with the updated messages
-			stream = a.client.Chat.Completions.NewStreaming(ctx, params)
-			acc = openai.ChatCompletionAccumulator{}
-		}
-	}
+			extractor.ExtractToolCallsFromChoices(chunk.Choices)
 
-	return nil, errors.New("couldnt match any stream")
+			if tool, ok := acc.JustFinishedToolCall(); ok {
+				fmt.Printf("[DEBUG] Finished tool call detected: %+v\n", tool)
+
+				for _, providedTool := range tools {
+					providedToolFuncName := providedTool.GetFuncName()
+					fmt.Printf("[DEBUG] Checking tool: %s\n", providedToolFuncName)
+
+					if callID, ok := extractor.GetFunctionCallID(providedToolFuncName); ok {
+						fmt.Printf("[DEBUG] Found matching tool call ID: %s\n", callID)
+
+						result, err := providedTool.CallHandler(ctx, tool.Arguments)
+						if err != nil {
+							fmt.Printf("[ERROR] Tool handler failed: %v\n", err)
+							yield(nil, err)
+							return
+						}
+						fmt.Printf("[DEBUG] Tool handler result: %s\n", result)
+
+						if delta, ok := extractor.GetDelta(providedToolFuncName); ok {
+
+							// Extract tool call into assistant message
+							assistantMsg := extractor.ExtractToolCallIntoAssistantMessage(delta)
+							params.Messages.Value = append(params.Messages.Value, assistantMsg)
+							params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(callID, result))
+
+						}
+					}
+				}
+
+				// Start a new stream with the updated messages
+
+				stream = a.client.Chat.Completions.NewStreaming(ctx, params)
+				acc = openai.ChatCompletionAccumulator{}
+			}
+		}
+
+		if err := stream.Err(); err != nil {
+			yield(nil, err)
+		}
+	}, nil
 }
 
 func convertChatTool(tool project.ChatTool) *openai.ChatCompletionToolParam {
@@ -186,7 +182,7 @@ func convertChatTool(tool project.ChatTool) *openai.ChatCompletionToolParam {
 
 	}
 	return &openai.ChatCompletionToolParam{
-		Type: openai.F(openai.ChatCompletionToolType("object")),
+		Type: openai.F(openai.ChatCompletionToolTypeFunction),
 		Function: openai.F(shared.FunctionDefinitionParam{
 			Name:        openai.String(tool.GetFuncName()),
 			Description: openai.String(tool.GetFuncDescription()),

@@ -98,6 +98,7 @@ func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body operatio
 
 			for chunk, err := range stream {
 				if err != nil {
+					h.logger.Error("stream error", "err", err)
 					return
 				}
 
@@ -108,7 +109,6 @@ func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body operatio
 					h.logger.Error("unable to flush", "err", err)
 				}
 			}
-
 		},
 	}, nil
 }

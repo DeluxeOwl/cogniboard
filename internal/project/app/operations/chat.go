@@ -54,18 +54,23 @@ func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithP
 	operation.enrichWithSystemPrompt()
 
 	return h.chatService.StreamChat(ctx, operation.Messages, []project.ChatTool{
-		project.Tool[string]{
+		project.Tool[struct{}]{
 			FuncName: "get_tasks",
 			Params:   []project.ToolParam{},
-			Handler: func(ctx context.Context, s string) (string, error) {
+			Handler: func(ctx context.Context, _ struct{}) (string, error) {
 				tasks, err := h.repo.AllTasks(ctx)
 				if err != nil {
 					return "", fmt.Errorf("get tasks: %w", err)
 				}
 
-				marshaled, err := json.Marshal(tasks)
+				snaps := make([]*project.TaskSnapshot, len(tasks))
+				for i, task := range tasks {
+					snaps[i] = task.GetSnapshot()
+				}
+
+				marshaled, err := json.Marshal(snaps)
 				if err != nil {
-					return "", fmt.Errorf("marshal tasks: %w", err)
+					return "", fmt.Errorf("marshal tasks snapshot: %w", err)
 				}
 
 				return string(marshaled), nil
