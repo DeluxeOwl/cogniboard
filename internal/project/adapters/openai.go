@@ -90,7 +90,7 @@ func (a *openAIAdapter) StreamChat(ctx context.Context, messages []operations.Me
 		for i, chatTool := range tools {
 			converted := convertChatTool(chatTool)
 			openAIToolParams[i] = *converted
-			fmt.Printf("[DEBUG] Tool %d: %s\n", i, chatTool.GetFuncName())
+
 		}
 		params.Tools = openai.F(openAIToolParams)
 	}
@@ -113,8 +113,6 @@ func (a *openAIAdapter) StreamChat(ctx context.Context, messages []operations.Me
 			rawByteChunk = append(rawByteChunk, json...)
 			rawByteChunk = append(rawByteChunk, '\n')
 
-			fmt.Printf("[DEBUG] Raw chunk: %s\n", string(rawByteChunk))
-
 			if !yield(rawByteChunk, nil) {
 				return
 			}
@@ -122,22 +120,18 @@ func (a *openAIAdapter) StreamChat(ctx context.Context, messages []operations.Me
 			extractor.ExtractToolCallsFromChoices(chunk.Choices)
 
 			if tool, ok := acc.JustFinishedToolCall(); ok {
-				fmt.Printf("[DEBUG] Finished tool call detected: %+v\n", tool)
 
 				for _, providedTool := range tools {
 					providedToolFuncName := providedTool.GetFuncName()
-					fmt.Printf("[DEBUG] Checking tool: %s\n", providedToolFuncName)
 
 					if callID, ok := extractor.GetFunctionCallID(providedToolFuncName); ok {
-						fmt.Printf("[DEBUG] Found matching tool call ID: %s\n", callID)
 
 						result, err := providedTool.CallHandler(ctx, tool.Arguments)
 						if err != nil {
-							fmt.Printf("[ERROR] Tool handler failed: %v\n", err)
+
 							yield(nil, err)
 							return
 						}
-						fmt.Printf("[DEBUG] Tool handler result: %s\n", result)
 
 						if delta, ok := extractor.GetDelta(providedToolFuncName); ok {
 
