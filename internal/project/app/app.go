@@ -6,12 +6,14 @@ import (
 
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/commands"
+	"github.com/DeluxeOwl/cogniboard/internal/project/app/operations"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/queries"
 )
 
 type Application struct {
-	Commands Commands
-	Queries  Queries
+	Commands   Commands
+	Queries    Queries
+	Operations Operations
 }
 
 type Commands struct {
@@ -22,8 +24,11 @@ type Commands struct {
 }
 
 type Queries struct {
-	AllTasks        queries.AllTasksHandler
-	ChatWithProject queries.ChatWithProjectHandler
+	AllTasks queries.AllTasksHandler
+}
+
+type Operations struct {
+	ChatWithProject operations.ChatWithProjectHandler
 }
 
 // New creates a new Application instance with the provided dependencies
@@ -31,7 +36,7 @@ func New(
 	repo project.TaskRepository,
 	logger *slog.Logger,
 	fileStorage project.FileStorage,
-	chatService queries.ChatService,
+	chatService operations.ChatService,
 ) (*Application, error) {
 	if repo == nil {
 		return nil, errors.New("repo cannot be nil")
@@ -54,8 +59,10 @@ func New(
 			AttachFilesToTask: commands.NewAttachFilesToTaskHandler(repo, logger, fileStorage),
 		},
 		Queries: Queries{
-			AllTasks:        queries.NewAllTasksHandler(repo, logger),
-			ChatWithProject: queries.NewChatWithProjectHandler(chatService, logger),
+			AllTasks: queries.NewAllTasksHandler(repo, logger),
+		},
+		Operations: Operations{
+			ChatWithProject: operations.NewChatWithProjectHandler(chatService, logger),
 		},
 	}, nil
 }

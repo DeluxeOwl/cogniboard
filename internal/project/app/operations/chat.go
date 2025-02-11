@@ -1,4 +1,4 @@
-package queries
+package operations
 
 import (
 	"context"
@@ -9,19 +9,16 @@ import (
 	"github.com/DeluxeOwl/cogniboard/internal/decorator"
 )
 
-// Message represents a chat message
 type Message struct {
 	Role    string    `json:"role"`
 	Content []Content `json:"content"`
 }
 
-// Content represents message content
 type Content struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
 }
 
-// StreamingChunk represents a stream of chat completion chunks
 type StreamingChunk interface {
 	Close() error
 	Current() []byte
@@ -29,18 +26,15 @@ type StreamingChunk interface {
 	Next() bool
 }
 
-// ChatService defines the interface for chat operations
 type ChatService interface {
 	StreamChat(ctx context.Context, messages []Message) (StreamingChunk, error)
 }
 
-// ChatWithProject represents a chat query with project context
 type ChatWithProject struct {
 	Messages []Message `json:"messages"`
 }
 
-// ChatWithProjectHandler handles chat queries
-type ChatWithProjectHandler decorator.QueryHandler[ChatWithProject, StreamingChunk]
+type ChatWithProjectHandler decorator.OperationHandler[ChatWithProject, StreamingChunk]
 
 type chatWithProjectHandler struct {
 	chatService ChatService
@@ -51,9 +45,8 @@ type ChatWithProjectReadModel interface {
 	ChatWithProject(ctx context.Context) (StreamingChunk, error)
 }
 
-// NewChatWithProjectHandler creates a new chat query handler
 func NewChatWithProjectHandler(chatService ChatService, logger *slog.Logger) ChatWithProjectHandler {
-	return decorator.ApplyQueryDecorators(
+	return decorator.ApplyOperationDecorators(
 		&chatWithProjectHandler{chatService: chatService},
 		logger,
 	)
@@ -61,8 +54,8 @@ func NewChatWithProjectHandler(chatService ChatService, logger *slog.Logger) Cha
 
 // TODO: chat should be a domain object. For now it's fine to do some business logic here.
 // The openai adapter should depend on the message domain entity
-func (h *chatWithProjectHandler) Handle(ctx context.Context, query ChatWithProject) (StreamingChunk, error) {
-	query.Messages = append([]Message{
+func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithProject) (StreamingChunk, error) {
+	operation.Messages = append([]Message{
 		{
 			Role: "system",
 			Content: []Content{
@@ -72,9 +65,9 @@ func (h *chatWithProjectHandler) Handle(ctx context.Context, query ChatWithProje
 				},
 			},
 		},
-	}, query.Messages...)
+	}, operation.Messages...)
 
-	return h.chatService.StreamChat(ctx, query.Messages)
+	return h.chatService.StreamChat(ctx, operation.Messages)
 }
 
 func NewSystemPrompt(currentTime time.Time) string {
@@ -92,7 +85,7 @@ Core Capabilities:
 You can assist with sprint planning, daily standups, retrospectives, backlog refinement, and sprint reviews. You provide data-driven insights about team performance, help identify and remove impediments, and facilitate process improvements. You can calculate sprint velocities, estimate completion dates, and suggest workload balancing strategies. 
 
 Communication Protocol: 
-- Always begin responses by checking the current sprint status relevant to the query
+- Always begin responses by checking the current sprint status relevant to the operation
 - Provide specific, actionable recommendations based on Agile principles
 - Reference relevant metrics and data points when making suggestions
 - Use clear, professional language focused on project management terminology
@@ -112,7 +105,7 @@ Acceptable non-PM topics:
      
 
 Response Framework: 
-- Assess if query is within scope
+- Assess if operation is within scope
 - If PM-related, check relevant project data
 - Provide Agile-focused solution or guidance
 - Include specific metrics when applicable

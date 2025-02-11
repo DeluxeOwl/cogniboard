@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DeluxeOwl/cogniboard/internal/project/app/queries"
+	"github.com/DeluxeOwl/cogniboard/internal/project/app/operations"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/ssestream"
 )
@@ -54,14 +54,14 @@ type openAIAdapter struct {
 }
 
 // NewOpenAIAdapter creates a new OpenAI adapter that implements ChatService
-func NewOpenAIAdapter(client *openai.Client, config OpenAIConfig) queries.ChatService {
+func NewOpenAIAdapter(client *openai.Client, config OpenAIConfig) operations.ChatService {
 	return &openAIAdapter{
 		client: client,
 		config: config,
 	}
 }
 
-func convertMessages(messages []queries.Message) ([]openai.ChatCompletionMessageParamUnion, error) {
+func convertMessages(messages []operations.Message) ([]openai.ChatCompletionMessageParamUnion, error) {
 	result := make([]openai.ChatCompletionMessageParamUnion, 0, len(messages))
 
 	for _, msg := range messages {
@@ -99,7 +99,7 @@ func convertMessages(messages []queries.Message) ([]openai.ChatCompletionMessage
 	return result, nil
 }
 
-func (a *openAIAdapter) StreamChat(ctx context.Context, messages []queries.Message) (queries.StreamingChunk, error) {
+func (a *openAIAdapter) StreamChat(ctx context.Context, messages []operations.Message) (operations.StreamingChunk, error) {
 	converted, err := convertMessages(messages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert messages: %w", err)

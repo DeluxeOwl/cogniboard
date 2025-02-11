@@ -11,7 +11,7 @@ import (
 	"github.com/DeluxeOwl/cogniboard/internal/project"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app"
 	"github.com/DeluxeOwl/cogniboard/internal/project/app/commands"
-	"github.com/DeluxeOwl/cogniboard/internal/project/app/queries"
+	"github.com/DeluxeOwl/cogniboard/internal/project/app/operations"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -79,7 +79,7 @@ func handleError(err error) error {
 
 // In DTOs - for input adapters: e.g REST api
 
-func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body queries.ChatWithProject }) (*huma.StreamResponse, error) {
+func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body operations.ChatWithProject }) (*huma.StreamResponse, error) {
 	return &huma.StreamResponse{
 		Body: func(ctx huma.Context) {
 
@@ -90,7 +90,7 @@ func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body queries.
 				d.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			}
 
-			stream, err := h.app.Queries.ChatWithProject.Handle(ctx.Context(), queries.ChatWithProject{
+			stream, err := h.app.Operations.ChatWithProject.Handle(ctx.Context(), operations.ChatWithProject{
 				Messages: input.Body.Messages,
 			})
 			if err != nil {

@@ -60,3 +60,26 @@ func (d withQueryLogger[C, R]) Handle(ctx context.Context, cmd C) (result R, err
 
 	return d.base.Handle(ctx, cmd)
 }
+
+type withOperationLogger[C any, R any] struct {
+	base OperationHandler[C, R]
+	log  *slog.Logger
+}
+
+func (d withOperationLogger[C, R]) Handle(ctx context.Context, operation C) (result R, err error) {
+	logger := d.log.With(
+		"operation", generateActionName(operation),
+		"operation_body", fmt.Sprintf("%#v", operation),
+	)
+
+	logger.Debug("executing operation")
+	defer func() {
+		if err == nil {
+			logger.Info("operation executed successfully")
+		} else {
+			logger.Error("execute operation", "error", err)
+		}
+	}()
+
+	return d.base.Handle(ctx, operation)
+}
