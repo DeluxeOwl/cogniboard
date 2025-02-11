@@ -2,12 +2,33 @@ package operations
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/DeluxeOwl/cogniboard/internal/decorator"
+	"github.com/DeluxeOwl/cogniboard/internal/project"
 )
+
+type ChatWithProjectHandler decorator.OperationHandler[ChatWithProject, project.StreamingChunk]
+
+type chatWithProjectHandler struct {
+	chatService ChatService
+	repo        project.TaskRepository
+}
+
+// ChatWithProjectReadModel defines the interface for reading chat interactions
+type ChatWithProjectReadModel interface {
+	ChatWithProject(ctx context.Context) (project.StreamingChunk, error)
+}
+
+func NewChatWithProjectHandler(chatService ChatService, repo project.TaskRepository, logger *slog.Logger) ChatWithProjectHandler {
+	return decorator.ApplyOperationDecorators(
+		&chatWithProjectHandler{chatService: chatService, repo: repo},
+		logger,
+	)
+}
 
 type Message struct {
 	Role    string    `json:"role"`
@@ -19,43 +40,42 @@ type Content struct {
 	Text string `json:"text"`
 }
 
-type StreamingChunk interface {
-	Close() error
-	Current() []byte
-	Err() error
-	Next() bool
-}
-
-type ChatService interface {
-	StreamChat(ctx context.Context, messages []Message) (StreamingChunk, error)
-}
-
 type ChatWithProject struct {
 	Messages []Message `json:"messages"`
 }
 
-type ChatWithProjectHandler decorator.OperationHandler[ChatWithProject, StreamingChunk]
-
-type chatWithProjectHandler struct {
-	chatService ChatService
-}
-
-// ChatWithProjectReadModel defines the interface for reading chat interactions
-type ChatWithProjectReadModel interface {
-	ChatWithProject(ctx context.Context) (StreamingChunk, error)
-}
-
-func NewChatWithProjectHandler(chatService ChatService, logger *slog.Logger) ChatWithProjectHandler {
-	return decorator.ApplyOperationDecorators(
-		&chatWithProjectHandler{chatService: chatService},
-		logger,
-	)
+type ChatService interface {
+	StreamChat(ctx context.Context, messages []Message, tools []project.ChatTool) (project.StreamingChunk, error)
 }
 
 // TODO: chat should be a domain object. For now it's fine to do some business logic here.
 // The openai adapter should depend on the message domain entity
-func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithProject) (StreamingChunk, error) {
-	operation.Messages = append([]Message{
+func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithProject) (project.StreamingChunk, error) {
+	operation.enrichWithSystemPrompt()
+
+	return h.chatService.StreamChat(ctx, operation.Messages, []project.ChatTool{
+		project.Tool[string]{
+			FuncName: "get_tasks",
+			Params:   []project.ToolParam{},
+			Handler: func(ctx context.Context, s string) (string, error) {
+				tasks, err := h.repo.AllTasks(ctx)
+				if err != nil {
+					return "", fmt.Errorf("get tasks: %w", err)
+				}
+
+				marshaled, err := json.Marshal(tasks)
+				if err != nil {
+					return "", fmt.Errorf("marshal tasks: %w", err)
+				}
+
+				return string(marshaled), nil
+			},
+		},
+	})
+}
+
+func (op *ChatWithProject) enrichWithSystemPrompt() {
+	op.Messages = append([]Message{
 		{
 			Role: "system",
 			Content: []Content{
@@ -65,13 +85,13 @@ func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithP
 				},
 			},
 		},
-	}, operation.Messages...)
-
-	return h.chatService.StreamChat(ctx, operation.Messages)
+	}, op.Messages...)
 }
 
 func NewSystemPrompt(currentTime time.Time) string {
 	return fmt.Sprintf(`
+You must use the provided tool to get the tasks.
+
 <context>
 The current time is %s
 </context>

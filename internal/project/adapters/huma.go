@@ -82,7 +82,6 @@ func handleError(err error) error {
 func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body operations.ChatWithProject }) (*huma.StreamResponse, error) {
 	return &huma.StreamResponse{
 		Body: func(ctx huma.Context) {
-
 			ctx.SetHeader("Content-Type", "text/my-stream")
 			writer := ctx.BodyWriter()
 
