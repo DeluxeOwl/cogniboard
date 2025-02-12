@@ -113,6 +113,8 @@ func (a *openAIAdapter) StreamChat(ctx context.Context, messages []operations.Me
 			rawByteChunk = append(rawByteChunk, json...)
 			rawByteChunk = append(rawByteChunk, '\n')
 
+			// fmt.Println("[CHUNK]", string(rawByteChunk))
+
 			if !yield(rawByteChunk, nil) {
 				return
 			}

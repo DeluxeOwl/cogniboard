@@ -48,6 +48,15 @@ type ChatService interface {
 	StreamChat(ctx context.Context, messages []Message, tools []project.ChatTool) (project.StreamingChunk, error)
 }
 
+type EditTaskArgs struct {
+	TaskID       string     `json:"taskID"`
+	Title        *string    `json:"title"`
+	Description  *string    `json:"description"`
+	DueDate      *time.Time `json:"dueDate"`
+	AssigneeName *string    `json:"assigneeName"`
+	Status       *string    `json:"status"`
+}
+
 // TODO: chat should be a domain object. For now it's fine to do some business logic here.
 // The openai adapter should depend on the message domain entity
 func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithProject) (project.StreamingChunk, error) {
@@ -55,8 +64,9 @@ func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithP
 
 	return h.chatService.StreamChat(ctx, operation.Messages, []project.ChatTool{
 		project.Tool[struct{}]{
-			FuncName: "get_tasks",
-			Params:   []project.ToolParam{},
+			FuncName:    "get_tasks",
+			Description: "Get all available tasks from the board",
+			Params:      []project.ToolParam{},
 			Handler: func(ctx context.Context, _ struct{}) (string, error) {
 				tasks, err := h.repo.AllTasks(ctx)
 				if err != nil {
@@ -74,6 +84,57 @@ func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithP
 				}
 
 				return string(marshaled), nil
+			},
+		},
+		project.Tool[EditTaskArgs]{
+			FuncName:    "edit_task",
+			Description: "Edit a task, only the taskID is required. The allowed values for status are pending, in_progress and in_review. This function cannot be used to mark a task as complete.",
+			Params: []project.ToolParam{
+				{
+					Name:      "taskID",
+					ParamType: "string",
+					Required:  true,
+				},
+				{
+					Name:      "title",
+					ParamType: "string",
+				},
+				{
+					Name:      "description",
+					ParamType: "string",
+				},
+				{
+					Name:      "dueDate",
+					ParamType: "string",
+				},
+				{
+					Name:      "assigneeName",
+					ParamType: "string",
+				},
+				{
+					Name:      "status",
+					ParamType: "string",
+				},
+			},
+			Handler: func(ctx context.Context, cmd EditTaskArgs) (string, error) {
+				err := h.repo.UpdateTask(ctx, project.TaskID(cmd.TaskID), func(t *project.Task) (*project.Task, error) {
+					var status *project.TaskStatus
+					if cmd.Status != nil {
+						s := project.TaskStatus(*cmd.Status)
+						status = &s
+					}
+
+					if err := t.Edit(cmd.Title, cmd.Description, cmd.DueDate, cmd.AssigneeName, status); err != nil {
+						return nil, err
+					}
+					return t, nil
+				})
+
+				if err != nil {
+					return "couldn't edit task", nil
+				}
+
+				return "Edited task", nil
 			},
 		},
 	})
@@ -95,8 +156,6 @@ func (op *ChatWithProject) enrichWithSystemPrompt() {
 
 func NewSystemPrompt(currentTime time.Time) string {
 	return fmt.Sprintf(`
-You must use the provided tool to get the tasks.
-
 <context>
 The current time is %s
 </context>
@@ -158,5 +217,8 @@ You should never:
 When uncertain about a request's scope, ask clarifying questions to determine if it falls within your project management purview. Default to a conservative interpretation of your role's boundaries. 
 
 Remember: Your primary goal is to facilitate project success through Agile principles and practices while maintaining clear professional boundaries.
+
+You must use the available tools to interact with the tasks.
+If you're asked to assign a task to someone, ensure that the person exists by seeing who is assigned to tasks.
 `, currentTime.Format("2006-01-02"))
 }
