@@ -138,8 +138,12 @@ func (a *openAIAdapter) StreamChat(ctx context.Context, messages []operations.Me
 							// Extract tool call into assistant message
 							assistantMsg := extractor.ExtractToolCallIntoAssistantMessage(delta)
 							params.Messages.Value = append(params.Messages.Value, assistantMsg)
-							params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(callID, result))
-
+							// NOTE: dont use  params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(callID, result)) - it's not compatible with other providers because of the way openai sends the content
+							params.Messages.Value = append(params.Messages.Value, openai.ChatCompletionMessageParam{
+								Role:       openai.F(openai.ChatCompletionMessageParamRoleTool),
+								Content:    openai.F(any(result)),
+								ToolCallID: openai.F(callID),
+							})
 						}
 					}
 				}
