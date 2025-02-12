@@ -1,3 +1,4 @@
+import { tasksQueryKey } from "@/api";
 import { Thread } from "@/components/assistant-ui/thread";
 import {
 	AssistantRuntimeProvider,
@@ -5,9 +6,10 @@ import {
 	type ChatModelAdapter,
 } from "@assistant-ui/react";
 import { z } from "zod";
+import { queryClient } from "~/root";
 
 export default function Chat() {
-	const runtime = useLocalRuntime(OpenAIWithoutProxyAdapter);
+	const runtime = useLocalRuntime(adapter);
 	return (
 		<AssistantRuntimeProvider runtime={runtime}>
 			<div className="h-full pb-12">
@@ -89,7 +91,7 @@ const OpenAIProxyAdapter: ChatModelAdapter = {
 };
 
 const DeltaSchema = z.object({
-	content: z.string().optional(),
+	content: z.string().nullable().optional(),
 });
 
 const ChoiceSchema = z.object({
@@ -106,69 +108,97 @@ const ChatResponseSchema = z.object({
 	choices: z.array(ChoiceSchema).optional(),
 });
 
-const OpenAIWithoutProxyAdapter: ChatModelAdapter = {
-	async *run({ messages, abortSignal, context }) {
-		try {
-			const response = await fetch(`${BaseURL}/v1/api/chat`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Accept: "text/event-stream",
-				},
-				body: JSON.stringify({
-					messages: messages.map((msg) => ({
-						role: msg.role,
-						content: msg.content,
-					})),
-				}),
-				signal: abortSignal,
-			});
+const adapter = CreateOpenAIWithoutProxyAdapter({
+	onRefetch: async () => {
+		console.info("should refetch", Math.random());
+		await queryClient.invalidateQueries({
+			queryKey: tasksQueryKey(),
+			refetchType: "all",
+		});
+	},
+});
 
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
+type CreateOpenAIWithoutProxyAdapterProps = {
+	onRefetch?: () => void;
+};
 
-			const reader = response.body?.getReader();
-			if (!reader) throw new Error("No response body");
+function CreateOpenAIWithoutProxyAdapter(
+	props: CreateOpenAIWithoutProxyAdapterProps
+): ChatModelAdapter {
+	return {
+		async *run({ messages, abortSignal, context }) {
+			try {
+				const response = await fetch(`${BaseURL}/v1/api/chat`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Accept: "text/event-stream",
+					},
+					body: JSON.stringify({
+						messages: messages.map((msg) => ({
+							role: msg.role,
+							content: msg.content,
+						})),
+					}),
+					signal: abortSignal,
+				});
 
-			const decoder = new TextDecoder();
-			let buffer = "";
-			let accumulatedText = "";
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
 
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
+				const reader = response.body?.getReader();
+				if (!reader) throw new Error("No response body");
 
-				const chunk = decoder.decode(value);
+				const decoder = new TextDecoder();
+				let buffer = "";
+				let accumulatedText = "";
 
-				buffer += chunk;
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
 
-				const lines = buffer.split("\n");
-				buffer = lines.pop() || "";
+					const chunk = decoder.decode(value);
+					buffer += chunk;
 
-				for (const line of lines) {
-					try {
-						const parsedData = ChatResponseSchema.parse(JSON.parse(line));
+					const lines = buffer.split("\n");
+					buffer = lines.pop() || "";
 
-						if (parsedData.choices?.[0].finish_reason !== null) {
-							break;
+					for (const line of lines) {
+						try {
+							const parsedData = ChatResponseSchema.parse(JSON.parse(line));
+
+							if (parsedData.choices?.[0].finish_reason !== null) {
+								break;
+							}
+
+							const content = parsedData.choices?.[0]?.delta?.content;
+							if (content) {
+								accumulatedText += content;
+
+								const hasRefetch = accumulatedText.endsWith("@refetch");
+
+								if (hasRefetch) {
+									props.onRefetch?.();
+								}
+
+								const displayText = hasRefetch
+									? accumulatedText.slice(0, -8) // remove "@refetch"
+									: accumulatedText;
+
+								yield {
+									content: [{ type: "text", text: displayText }],
+								};
+							}
+						} catch (e) {
+							console.error("Error parsing or validating line:", line, e);
 						}
-
-						const content = parsedData.choices?.[0]?.delta?.content;
-						if (content) {
-							accumulatedText += content;
-							yield {
-								content: [{ type: "text", text: accumulatedText }],
-							};
-						}
-					} catch (e) {
-						console.error("Error parsing or validating line:", line, e);
 					}
 				}
+			} catch (error) {
+				console.error("Error in chat request:", error);
+				throw error;
 			}
-		} catch (error) {
-			console.error("Error in chat request:", error);
-			throw error;
-		}
-	},
-};
+		},
+	};
+}
