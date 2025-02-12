@@ -17,15 +17,4 @@ INSERT INTO tasks (
     ('6', 'Create board templates', 'Design and implement reusable board templates for common use cases', '2026-05-25', 'John', NOW(), NOW(), NULL, 'pending'),
     ('7', 'Add card labels feature', 'Implement color-coded labels for better task categorization', '2026-05-18', 'Laura', NOW(), NOW(), NULL, 'in_progress'),
     ('8', 'Mobile responsive design', 'Ensure proper display and functionality on mobile devices', '2026-05-30', 'Steve', NOW(), NOW(), NULL, 'pending'),
-    ('9', 'Implement activity log', 'Add tracking for all board and card changes with user attribution', '2026-05-22', 'Alex', NOW(), NOW(), NULL, 'in_review'),
-    ('10', 'Add board statistics', 'Create analytics dashboard for board metrics and team productivity', '2026-05-28', 'Mary', NOW(), NOW(), NULL, 'pending'),
-    ('11', 'Setup automated testing', 'Implement end-to-end testing suite for critical features', '2026-06-05', 'John', NOW(), NOW(), NULL, 'pending'),
-    ('12', 'Add due date notifications', 'Implement email and in-app notifications for approaching deadlines', '2026-06-10', 'Laura', NOW(), NOW(), NULL, 'pending'),
-    ('13', 'Implement card attachments', 'Add support for file attachments on cards', '2026-06-15', 'Steve', NOW(), NOW(), NULL, 'in_progress'),
-    ('14', 'Create user onboarding flow', 'Design and implement guided tutorial for new users', '2026-06-20', 'Alex', NOW(), NOW(), NULL, 'in_review'),
-    ('15', 'Add board export feature', 'Implement PDF and CSV export functionality for boards', '2026-06-25', 'Mary', NOW(), NOW(), NULL, 'pending'),
-    ('16', 'Implement card dependencies', 'Add ability to link related cards and track dependencies', '2026-07-01', 'John', NOW(), NOW(), NULL, 'pending'),
-    ('17', 'Add custom field support', 'Allow users to create custom fields for cards', '2026-07-05', 'Laura', NOW(), NOW(), NULL, 'in_progress'),
-    ('18', 'Implement board archiving', 'Add functionality to archive completed boards and cards', '2026-07-10', 'Steve', NOW(), NOW(), '2026-04-19', 'completed'),
-    ('19', 'Add team management features', 'Implement team creation and management functionality', '2026-07-15', 'Alex', NOW(), NOW(), NULL, 'pending'),
-    ('20', 'Create API documentation', 'Document all API endpoints and integration guidelines', '2026-07-20', 'Mary', NOW(), NOW(), NULL, 'in_review');
+    ('9', 'Implement activity log', 'Add tracking for all board and card changes with user attribution', '2026-05-22', 'Alex', NOW(), NOW(), NULL, 'in_review');
