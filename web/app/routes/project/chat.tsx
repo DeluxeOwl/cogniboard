@@ -110,10 +110,9 @@ const ChatResponseSchema = z.object({
 
 const adapter = CreateOpenAIWithoutProxyAdapter({
 	onRefetch: async () => {
-		console.info("should refetch", Math.random());
-		await queryClient.invalidateQueries({
+		await queryClient.refetchQueries({
 			queryKey: tasksQueryKey(),
-			refetchType: "all",
+			type: "all",
 		});
 	},
 });
