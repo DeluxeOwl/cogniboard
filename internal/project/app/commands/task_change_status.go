@@ -19,7 +19,10 @@ type changeTaskStatusHandler struct {
 	repo project.TaskRepository
 }
 
-func NewChangeStatusHandler(repo project.TaskRepository, logger *slog.Logger) ChangeTaskStatusHandler {
+func NewChangeStatusHandler(
+	repo project.TaskRepository,
+	logger *slog.Logger,
+) ChangeTaskStatusHandler {
 	return decorator.ApplyCommandDecorators(
 		&changeTaskStatusHandler{repo: repo},
 		logger,

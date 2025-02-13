@@ -23,7 +23,8 @@
         "aarch64-darwin"
       ]
     },
-    "go-task": "3.38.0"
+    "go-task": "3.38.0",
+    "golines": "latest"
   },
   "shell": {}
 }

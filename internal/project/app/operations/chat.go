@@ -23,7 +23,11 @@ type ChatWithProjectReadModel interface {
 	ChatWithProject(ctx context.Context) (project.StreamingChunk, error)
 }
 
-func NewChatWithProjectHandler(chatService ChatService, repo project.TaskRepository, logger *slog.Logger) ChatWithProjectHandler {
+func NewChatWithProjectHandler(
+	chatService ChatService,
+	repo project.TaskRepository,
+	logger *slog.Logger,
+) ChatWithProjectHandler {
 	return decorator.ApplyOperationDecorators(
 		&chatWithProjectHandler{chatService: chatService, repo: repo},
 		logger,
@@ -45,7 +49,11 @@ type ChatWithProject struct {
 }
 
 type ChatService interface {
-	StreamChat(ctx context.Context, messages []Message, tools []project.ChatTool) (project.StreamingChunk, error)
+	StreamChat(
+		ctx context.Context,
+		messages []Message,
+		tools []project.ChatTool,
+	) (project.StreamingChunk, error)
 }
 
 type EditTaskArgs struct {
@@ -59,7 +67,10 @@ type EditTaskArgs struct {
 
 // TODO: chat should be a domain object. For now it's fine to do some business logic here.
 // The openai adapter should depend on the message domain entity
-func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithProject) (project.StreamingChunk, error) {
+func (h *chatWithProjectHandler) Handle(
+	ctx context.Context,
+	operation ChatWithProject,
+) (project.StreamingChunk, error) {
 	operation.enrichWithSystemPrompt()
 
 	return h.chatService.StreamChat(ctx, operation.Messages, []project.ChatTool{
@@ -117,19 +128,22 @@ func (h *chatWithProjectHandler) Handle(ctx context.Context, operation ChatWithP
 				},
 			},
 			Handler: func(ctx context.Context, cmd EditTaskArgs) (string, error) {
-				err := h.repo.UpdateTask(ctx, project.TaskID(cmd.TaskID), func(t *project.Task) (*project.Task, error) {
-					var status *project.TaskStatus
-					if cmd.Status != nil {
-						s := project.TaskStatus(*cmd.Status)
-						status = &s
-					}
+				err := h.repo.UpdateTask(
+					ctx,
+					project.TaskID(cmd.TaskID),
+					func(t *project.Task) (*project.Task, error) {
+						var status *project.TaskStatus
+						if cmd.Status != nil {
+							s := project.TaskStatus(*cmd.Status)
+							status = &s
+						}
 
-					if err := t.Edit(cmd.Title, cmd.Description, cmd.DueDate, cmd.AssigneeName, status); err != nil {
-						return nil, err
-					}
-					return t, nil
-				})
-
+						if err := t.Edit(cmd.Title, cmd.Description, cmd.DueDate, cmd.AssigneeName, status); err != nil {
+							return nil, err
+						}
+						return t, nil
+					},
+				)
 				if err != nil {
 					return "couldn't edit task", nil
 				}

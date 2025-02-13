@@ -31,7 +31,13 @@ func NewCreateTaskHandler(repo project.TaskRepository, logger *slog.Logger) Crea
 }
 
 func (h *createTaskHandler) Handle(ctx context.Context, cmd CreateTask) error {
-	task, err := project.NewTask(cmd.TaskID, cmd.Title, cmd.Description, cmd.DueDate, cmd.AssigneeName)
+	task, err := project.NewTask(
+		cmd.TaskID,
+		cmd.Title,
+		cmd.Description,
+		cmd.DueDate,
+		cmd.AssigneeName,
+	)
 	if err != nil {
 		return err
 	}

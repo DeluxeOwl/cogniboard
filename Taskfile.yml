@@ -30,6 +30,11 @@ tasks:
     cmds:
       - go run cmd/http/main.go
 
+  format:
+    cmds:
+      - gofumpt -w .
+      - golines -w .
+
   gen-hooks:
     desc: Generate React Query hooks
     dir: web

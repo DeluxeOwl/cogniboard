@@ -5,7 +5,10 @@ import (
 	"log/slog"
 )
 
-func ApplyOperationDecorators[H any, R any](handler OperationHandler[H, R], log *slog.Logger) OperationHandler[H, R] {
+func ApplyOperationDecorators[H any, R any](
+	handler OperationHandler[H, R],
+	log *slog.Logger,
+) OperationHandler[H, R] {
 	return withOperationLogger[H, R]{
 		base: handler,
 		log:  log,

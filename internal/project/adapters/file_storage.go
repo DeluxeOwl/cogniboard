@@ -23,7 +23,12 @@ func NewFileStorage(ctx context.Context, dir string) (project.FileStorage, error
 	return &fileStorage{bucket: bucket}, nil
 }
 
-func (s *fileStorage) Store(ctx context.Context, taskID project.TaskID, name string, content io.Reader) error {
+func (s *fileStorage) Store(
+	ctx context.Context,
+	taskID project.TaskID,
+	name string,
+	content io.Reader,
+) error {
 	key := s.buildKey(taskID, name)
 	w, err := s.bucket.NewWriter(ctx, key, nil)
 	if err != nil {
@@ -38,7 +43,11 @@ func (s *fileStorage) Store(ctx context.Context, taskID project.TaskID, name str
 	return nil
 }
 
-func (s *fileStorage) Get(ctx context.Context, taskID project.TaskID, name string) (io.ReadCloser, error) {
+func (s *fileStorage) Get(
+	ctx context.Context,
+	taskID project.TaskID,
+	name string,
+) (io.ReadCloser, error) {
 	iter := s.bucket.List(&blob.ListOptions{Prefix: string(taskID)})
 	obj, err := iter.Next(ctx)
 	if err == io.EOF {

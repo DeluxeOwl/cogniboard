@@ -65,7 +65,13 @@ var validTaskStatuses = map[TaskStatus]bool{
 	TaskStatusCompleted:  true,
 }
 
-func NewTask(id TaskID, title string, description *string, dueDate *time.Time, assigneeName *string) (*Task, error) {
+func NewTask(
+	id TaskID,
+	title string,
+	description *string,
+	dueDate *time.Time,
+	assigneeName *string,
+) (*Task, error) {
 	if len(title) > 50 {
 		return nil, ErrTitleTooLong
 	}
@@ -98,7 +104,13 @@ func (t *Task) Files() []File {
 	return t.files
 }
 
-func (t *Task) Edit(title *string, description *string, dueDate *time.Time, assigneeName *string, status *TaskStatus) error {
+func (t *Task) Edit(
+	title *string,
+	description *string,
+	dueDate *time.Time,
+	assigneeName *string,
+	status *TaskStatus,
+) error {
 	if title != nil {
 		if len(*title) > MaxTitleLength {
 			return ErrTitleTooLong

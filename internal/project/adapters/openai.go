@@ -35,7 +35,9 @@ func NewOpenAIAdapter(client *openai.Client, config OpenAIConfig) operations.Cha
 	}
 }
 
-func convertMessages(messages []operations.Message) ([]openai.ChatCompletionMessageParamUnion, error) {
+func convertMessages(
+	messages []operations.Message,
+) ([]openai.ChatCompletionMessageParamUnion, error) {
 	result := make([]openai.ChatCompletionMessageParamUnion, 0, len(messages))
 
 	for _, msg := range messages {
@@ -73,7 +75,11 @@ func convertMessages(messages []operations.Message) ([]openai.ChatCompletionMess
 	return result, nil
 }
 
-func (a *openAIAdapter) StreamChat(ctx context.Context, messages []operations.Message, tools []project.ChatTool) (project.StreamingChunk, error) {
+func (a *openAIAdapter) StreamChat(
+	ctx context.Context,
+	messages []operations.Message,
+	tools []project.ChatTool,
+) (project.StreamingChunk, error) {
 	converted, err := convertMessages(messages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert messages: %w", err)
@@ -139,11 +145,14 @@ func (a *openAIAdapter) StreamChat(ctx context.Context, messages []operations.Me
 							assistantMsg := extractor.ExtractToolCallIntoAssistantMessage(delta)
 							params.Messages.Value = append(params.Messages.Value, assistantMsg)
 							// NOTE: dont use  params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(callID, result)) - it's not compatible with other providers because of the way openai sends the content
-							params.Messages.Value = append(params.Messages.Value, openai.ChatCompletionMessageParam{
-								Role:       openai.F(openai.ChatCompletionMessageParamRoleTool),
-								Content:    openai.F(any(result)),
-								ToolCallID: openai.F(callID),
-							})
+							params.Messages.Value = append(
+								params.Messages.Value,
+								openai.ChatCompletionMessageParam{
+									Role:       openai.F(openai.ChatCompletionMessageParamRoleTool),
+									Content:    openai.F(any(result)),
+									ToolCallID: openai.F(callID),
+								},
+							)
 						}
 					}
 				}
@@ -206,12 +215,16 @@ func (e *toolCallExtractor) GetFunctionCallID(functionName string) (string, bool
 	return id, ok
 }
 
-func (e *toolCallExtractor) GetDelta(functionName string) (openai.ChatCompletionChunkChoicesDelta, bool) {
+func (e *toolCallExtractor) GetDelta(
+	functionName string,
+) (openai.ChatCompletionChunkChoicesDelta, bool) {
 	delta, ok := e.functionNamesToDelta[functionName]
 	return delta, ok
 }
 
-func (e *toolCallExtractor) ExtractToolCallsFromChoices(choices []openai.ChatCompletionChunkChoice) {
+func (e *toolCallExtractor) ExtractToolCallsFromChoices(
+	choices []openai.ChatCompletionChunkChoice,
+) {
 	for _, choice := range choices {
 		delta := choice.Delta
 		for _, toolCall := range delta.ToolCalls {
@@ -224,7 +237,9 @@ func (e *toolCallExtractor) ExtractToolCallsFromChoices(choices []openai.ChatCom
 }
 
 // ExtractToolCallIntoAssistantMessage creates an assistant message from a tool call delta
-func (e *toolCallExtractor) ExtractToolCallIntoAssistantMessage(delta openai.ChatCompletionChunkChoicesDelta) openai.ChatCompletionAssistantMessageParam {
+func (e *toolCallExtractor) ExtractToolCallIntoAssistantMessage(
+	delta openai.ChatCompletionChunkChoicesDelta,
+) openai.ChatCompletionAssistantMessageParam {
 	return openai.ChatCompletionAssistantMessageParam{
 		Role: openai.F(openai.ChatCompletionAssistantMessageParamRoleAssistant),
 		ToolCalls: openai.F([]openai.ChatCompletionMessageToolCallParam{

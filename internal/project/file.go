@@ -28,7 +28,11 @@ type DocumentSimilarity struct {
 
 type EmbeddingStorage interface {
 	AddDocuments(ctx context.Context, docs []Document) error
-	SearchDocumentsForTask(ctx context.Context, taskID TaskID, query string) (*DocumentSimilarity, error)
+	SearchDocumentsForTask(
+		ctx context.Context,
+		taskID TaskID,
+		query string,
+	) (*DocumentSimilarity, error)
 	SearchAllDocuments(ctx context.Context, query string) ([]DocumentSimilarity, error)
 }
 

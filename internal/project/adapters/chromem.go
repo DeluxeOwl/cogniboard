@@ -18,7 +18,11 @@ type ChromemDB struct {
 
 var _ project.EmbeddingStorage = &ChromemDB{}
 
-func NewChromemDB(dbPath string, collectionName string, embeddingFunc chromem.EmbeddingFunc) (*ChromemDB, error) {
+func NewChromemDB(
+	dbPath string,
+	collectionName string,
+	embeddingFunc chromem.EmbeddingFunc,
+) (*ChromemDB, error) {
 	db, err := chromem.NewPersistentDB(dbPath, false)
 	if err != nil {
 		return nil, err
@@ -48,12 +52,21 @@ func (c *ChromemDB) AddDocuments(ctx context.Context, docs []project.Document) e
 	return c.collection.AddDocuments(ctx, chromemDocs, runtime.NumCPU())
 }
 
-func (c *ChromemDB) SearchDocumentsForTask(ctx context.Context, taskID project.TaskID, query string) (*project.DocumentSimilarity, error) {
+func (c *ChromemDB) SearchDocumentsForTask(
+	ctx context.Context,
+	taskID project.TaskID,
+	query string,
+) (*project.DocumentSimilarity, error) {
 	res, err := c.collection.Query(ctx, query, 1, map[string]string{
 		c.taskField: string(taskID),
 	}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("searching documents for task id %q and query %q failed: %w", taskID, query, err)
+		return nil, fmt.Errorf(
+			"searching documents for task id %q and query %q failed: %w",
+			taskID,
+			query,
+			err,
+		)
 	}
 
 	if len(res) == 0 {
@@ -69,7 +82,10 @@ func (c *ChromemDB) SearchDocumentsForTask(ctx context.Context, taskID project.T
 	}, nil
 }
 
-func (c *ChromemDB) SearchAllDocuments(ctx context.Context, query string) ([]project.DocumentSimilarity, error) {
+func (c *ChromemDB) SearchAllDocuments(
+	ctx context.Context,
+	query string,
+) ([]project.DocumentSimilarity, error) {
 	res, err := c.collection.Query(ctx, query, 1, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("searching all documents for query %q failed: %w", query, err)

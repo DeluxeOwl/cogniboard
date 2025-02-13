@@ -32,16 +32,20 @@ func NewEditTaskHandler(repo project.TaskRepository, logger *slog.Logger) EditTa
 }
 
 func (h *editTaskHandler) Handle(ctx context.Context, cmd EditTask) error {
-	return h.repo.UpdateTask(ctx, project.TaskID(cmd.TaskID), func(t *project.Task) (*project.Task, error) {
-		var status *project.TaskStatus
-		if cmd.Status != nil {
-			s := project.TaskStatus(*cmd.Status)
-			status = &s
-		}
+	return h.repo.UpdateTask(
+		ctx,
+		project.TaskID(cmd.TaskID),
+		func(t *project.Task) (*project.Task, error) {
+			var status *project.TaskStatus
+			if cmd.Status != nil {
+				s := project.TaskStatus(*cmd.Status)
+				status = &s
+			}
 
-		if err := t.Edit(cmd.Title, cmd.Description, cmd.DueDate, cmd.AssigneeName, status); err != nil {
-			return nil, err
-		}
-		return t, nil
-	})
+			if err := t.Edit(cmd.Title, cmd.Description, cmd.DueDate, cmd.AssigneeName, status); err != nil {
+				return nil, err
+			}
+			return t, nil
+		},
+	)
 }

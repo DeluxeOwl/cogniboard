@@ -39,7 +39,10 @@ var (
 	}
 )
 
-func setupPostgresRepo(ctx context.Context, t *testing.T) (repo *PostgresTaskRepository, cleanup func()) {
+func setupPostgresRepo(
+	ctx context.Context,
+	t *testing.T,
+) (repo *PostgresTaskRepository, cleanup func()) {
 	req := testcontainers.ContainerRequest{
 		Image:        pgImage,
 		ExposedPorts: []string{pgPort},
@@ -50,10 +53,13 @@ func setupPostgresRepo(ctx context.Context, t *testing.T) (repo *PostgresTaskRep
 			"POSTGRES_PASSWORD": pgCreds.pass,
 		},
 	}
-	postgresContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
+	postgresContainer, err := testcontainers.GenericContainer(
+		ctx,
+		testcontainers.GenericContainerRequest{
+			ContainerRequest: req,
+			Started:          true,
+		},
+	)
 	require.NoError(t, err)
 
 	endpoint, err := postgresContainer.Endpoint(ctx, "")
@@ -71,7 +77,13 @@ func setupPostgresRepo(ctx context.Context, t *testing.T) (repo *PostgresTaskRep
 	}
 }
 
-func createTaskWithID(t *testing.T, title string, description *string, dueDate *time.Time, assigneeName *string) (task *project.Task) {
+func createTaskWithID(
+	t *testing.T,
+	title string,
+	description *string,
+	dueDate *time.Time,
+	assigneeName *string,
+) (task *project.Task) {
 	taskID, err := project.NewTaskID()
 	require.NoError(t, err)
 
@@ -161,13 +173,17 @@ func Test_RepoUpdateTask(t *testing.T) {
 		err := repo.Create(ctx, task)
 		require.NoError(t, err)
 
-		err = repo.UpdateTask(ctx, task.GetSnapshot().ID, func(t *project.Task) (*project.Task, error) {
-			err := t.ChangeStatus(project.TaskStatusCompleted)
-			if err != nil {
-				return nil, err
-			}
-			return t, nil
-		})
+		err = repo.UpdateTask(
+			ctx,
+			task.GetSnapshot().ID,
+			func(t *project.Task) (*project.Task, error) {
+				err := t.ChangeStatus(project.TaskStatusCompleted)
+				if err != nil {
+					return nil, err
+				}
+				return t, nil
+			},
+		)
 		require.NoError(t, err)
 
 		updatedTask, err := repo.GetByID(ctx, task.GetSnapshot().ID)
@@ -183,13 +199,17 @@ func Test_RepoUpdateTask(t *testing.T) {
 		require.NoError(t, err)
 
 		expectedError := fmt.Errorf("update error")
-		err = repo.UpdateTask(ctx, task.GetSnapshot().ID, func(t *project.Task) (*project.Task, error) {
-			err := t.ChangeStatus(project.TaskStatusCompleted)
-			if err != nil {
-				return nil, err
-			}
-			return t, expectedError
-		})
+		err = repo.UpdateTask(
+			ctx,
+			task.GetSnapshot().ID,
+			func(t *project.Task) (*project.Task, error) {
+				err := t.ChangeStatus(project.TaskStatusCompleted)
+				if err != nil {
+					return nil, err
+				}
+				return t, expectedError
+			},
+		)
 		require.ErrorIs(t, err, expectedError)
 
 		unchangedTask, err := repo.GetByID(ctx, task.GetSnapshot().ID)
@@ -220,14 +240,18 @@ func Test_RepoUpdateTask(t *testing.T) {
 		newDueDate := time.Now().Add(48 * time.Hour)
 		newAssignee := "updated assignee"
 
-		err = repo.UpdateTask(ctx, task.GetSnapshot().ID, func(t *project.Task) (*project.Task, error) {
-			newStatus := project.TaskStatusInProgress
-			err := t.Edit(&newTitle, &newDescription, &newDueDate, &newAssignee, &newStatus)
-			if err != nil {
-				return nil, err
-			}
-			return t, nil
-		})
+		err = repo.UpdateTask(
+			ctx,
+			task.GetSnapshot().ID,
+			func(t *project.Task) (*project.Task, error) {
+				newStatus := project.TaskStatusInProgress
+				err := t.Edit(&newTitle, &newDescription, &newDueDate, &newAssignee, &newStatus)
+				if err != nil {
+					return nil, err
+				}
+				return t, nil
+			},
+		)
 		require.NoError(t, err)
 
 		updatedTask, err := repo.GetByID(ctx, task.GetSnapshot().ID)
@@ -253,13 +277,17 @@ func Test_RepoUpdateTask(t *testing.T) {
 
 		// Update only title
 		newTitle := "new title"
-		err = repo.UpdateTask(ctx, task.GetSnapshot().ID, func(t *project.Task) (*project.Task, error) {
-			err := t.Edit(&newTitle, nil, nil, nil, nil)
-			if err != nil {
-				return nil, err
-			}
-			return t, nil
-		})
+		err = repo.UpdateTask(
+			ctx,
+			task.GetSnapshot().ID,
+			func(t *project.Task) (*project.Task, error) {
+				err := t.Edit(&newTitle, nil, nil, nil, nil)
+				if err != nil {
+					return nil, err
+				}
+				return t, nil
+			},
+		)
 		require.NoError(t, err)
 
 		updatedTask, err := repo.GetByID(ctx, task.GetSnapshot().ID)

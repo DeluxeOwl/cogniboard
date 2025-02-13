@@ -13,7 +13,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewProxy(logger *slog.Logger, openAICompatibleEndpoint string, apiKey string, prefix string) (*httputil.ReverseProxy, error) {
+func NewProxy(
+	logger *slog.Logger,
+	openAICompatibleEndpoint string,
+	apiKey string,
+	prefix string,
+) (*httputil.ReverseProxy, error) {
 	if openAICompatibleEndpoint == "" {
 		return nil, errors.New("empty endpoint")
 	}

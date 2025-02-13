@@ -79,7 +79,10 @@ func handleError(err error) error {
 
 // In DTOs - for input adapters: e.g REST api
 
-func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body operations.ChatWithProject }) (*huma.StreamResponse, error) {
+func (h *Huma) chatWithProject(
+	ctx context.Context,
+	input *struct{ Body operations.ChatWithProject },
+) (*huma.StreamResponse, error) {
 	return &huma.StreamResponse{
 		Body: func(ctx huma.Context) {
 			ctx.SetHeader("Content-Type", "text/my-stream")
@@ -89,9 +92,12 @@ func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body operatio
 				d.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			}
 
-			stream, err := h.app.Operations.ChatWithProject.Handle(ctx.Context(), operations.ChatWithProject{
-				Messages: input.Body.Messages,
-			})
+			stream, err := h.app.Operations.ChatWithProject.Handle(
+				ctx.Context(),
+				operations.ChatWithProject{
+					Messages: input.Body.Messages,
+				},
+			)
 			if err != nil {
 				h.logger.Error("create stream", "err", err)
 			}
@@ -115,9 +121,9 @@ func (h *Huma) chatWithProject(ctx context.Context, input *struct{ Body operatio
 
 // note: huma doesnt play well with struct embedding
 type CreateTask struct {
-	Title       string          `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
-	Description string          `form:"description" doc:"Task's description"`
-	DueDate     time.Time       `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
+	Title       string          `form:"title"         doc:"Task's name"              minLength:"1" maxLength:"50" required:"true"`
+	Description string          `form:"description"   doc:"Task's description"`
+	DueDate     time.Time       `form:"due_date"      doc:"Task's due date (if any)"                                              format:"date-time"`
 	Assignee    string          `form:"assignee_name" doc:"Task's asignee (if any)"`
 	Files       []huma.FormFile `form:"files"`
 }
@@ -171,7 +177,9 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 		}))
 }
 
-func (h *Huma) prepareFilesForUpload(rawFiles map[string][]*multipart.FileHeader) ([]commands.FileToUpload, error) {
+func (h *Huma) prepareFilesForUpload(
+	rawFiles map[string][]*multipart.FileHeader,
+) ([]commands.FileToUpload, error) {
 	var filesToUpload []commands.FileToUpload
 	for _, files := range rawFiles {
 		for _, file := range files {
@@ -225,9 +233,9 @@ func (h *Huma) getTasks(ctx context.Context, input *struct{}) (*struct{ Body Lis
 }
 
 type EditTask struct {
-	Title        string          `form:"title" doc:"Task's name" minLength:"1" maxLength:"50" required:"true"`
-	Description  string          `form:"description" doc:"Task's description"`
-	DueDate      time.Time       `form:"due_date" doc:"Task's due date (if any)" format:"date-time"`
+	Title        string          `form:"title"         doc:"Task's name"              minLength:"1" maxLength:"50" required:"true"`
+	Description  string          `form:"description"   doc:"Task's description"`
+	DueDate      time.Time       `form:"due_date"      doc:"Task's due date (if any)"                                              format:"date-time"`
 	AssigneeName string          `form:"assignee_name" doc:"Task's asignee (if any)"`
 	Files        []huma.FormFile `form:"files"`
 }

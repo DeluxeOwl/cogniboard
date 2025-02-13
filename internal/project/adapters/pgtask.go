@@ -29,7 +29,11 @@ func NewPostgresTaskRepository(client *ent.Client) (*PostgresTaskRepository, err
 	return repo, nil
 }
 
-func (r *PostgresTaskRepository) AddFiles(ctx context.Context, taskID project.TaskID, files []project.File) error {
+func (r *PostgresTaskRepository) AddFiles(
+	ctx context.Context,
+	taskID project.TaskID,
+	files []project.File,
+) error {
 	return WithTx(ctx, r.client, func(tx *ent.Tx) error {
 		// First create all file records
 
@@ -78,7 +82,10 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, task *project.Task)
 	return err
 }
 
-func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID) (*project.Task, error) {
+func (r *PostgresTaskRepository) GetByID(
+	ctx context.Context,
+	id project.TaskID,
+) (*project.Task, error) {
 	task, err := r.client.Task.Query().
 		Where(task.IDEQ(string(id))).
 		WithFiles().
@@ -90,7 +97,11 @@ func (r *PostgresTaskRepository) GetByID(ctx context.Context, id project.TaskID)
 	return project.UnmarshalTaskFromDB(task)
 }
 
-func (r *PostgresTaskRepository) UpdateTask(ctx context.Context, id project.TaskID, updateFn func(t *project.Task) (*project.Task, error)) error {
+func (r *PostgresTaskRepository) UpdateTask(
+	ctx context.Context,
+	id project.TaskID,
+	updateFn func(t *project.Task) (*project.Task, error),
+) error {
 	return WithTx(ctx, r.client, func(tx *ent.Tx) error {
 		// Get existing task with files
 		existingTask, err := tx.Task.Query().

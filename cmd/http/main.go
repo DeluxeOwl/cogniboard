@@ -37,9 +37,9 @@ type Options struct {
 	AiModel                  string `help:"The model for the api"`
 	OpenaiCompatibleEndpoint string `help:"The openai compatible endpoint"`
 	PostgresDSN              string `help:"The postgres connection string"`
-	Host                     string `help:"The host:port to listen on" default:"127.0.0.1:8888"`
-	Env                      string `help:"The environment to run in" default:"dev"`
-	FileDir                  string `help:"Directory for storing task files" default:"./cogniboardfiles"`
+	Host                     string `help:"The host:port to listen on"                     default:"127.0.0.1:8888"`
+	Env                      string `help:"The environment to run in"                      default:"dev"`
+	FileDir                  string `help:"Directory for storing task files"               default:"./cogniboardfiles"`
 }
 
 func main() {
@@ -95,8 +95,14 @@ func setupEcho() *echo.Echo {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowCredentials: true,
-		AllowHeaders:     []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "Authorization"},
-		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodOptions},
+		AllowHeaders: []string{
+			"Accept",
+			"Content-Type",
+			"Content-Length",
+			"Accept-Encoding",
+			"Authorization",
+		},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodOptions},
 	}))
 	v1 := e.Group("/" + APIVersion)
 
@@ -171,7 +177,11 @@ func setupApplication(ctx context.Context,
 		Model: aiModel,
 	})
 
-	embeddingStore, err := adapters.NewChromemDB("./embeddings", "documents", chromem.NewEmbeddingFuncOpenAI(llmAPIKey, chromem.EmbeddingModelOpenAI3Small))
+	embeddingStore, err := adapters.NewChromemDB(
+		"./embeddings",
+		"documents",
+		chromem.NewEmbeddingFuncOpenAI(llmAPIKey, chromem.EmbeddingModelOpenAI3Small),
+	)
 	if err != nil {
 		panic(err)
 	}

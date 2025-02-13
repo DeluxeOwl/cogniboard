@@ -57,10 +57,15 @@ func New(
 
 	return &Application{
 		Commands: Commands{
-			CreateTask:        commands.NewCreateTaskHandler(repo, logger),
-			ChangeTaskStatus:  commands.NewChangeStatusHandler(repo, logger),
-			EditTask:          commands.NewEditTaskHandler(repo, logger),
-			AttachFilesToTask: commands.NewAttachFilesToTaskHandler(repo, logger, fileStorage, embeddings),
+			CreateTask:       commands.NewCreateTaskHandler(repo, logger),
+			ChangeTaskStatus: commands.NewChangeStatusHandler(repo, logger),
+			EditTask:         commands.NewEditTaskHandler(repo, logger),
+			AttachFilesToTask: commands.NewAttachFilesToTaskHandler(
+				repo,
+				logger,
+				fileStorage,
+				embeddings,
+			),
 		},
 		Queries: Queries{
 			AllTasks: queries.NewAllTasksHandler(repo, logger),

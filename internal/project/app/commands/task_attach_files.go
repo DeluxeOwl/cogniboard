@@ -28,7 +28,12 @@ type attachFilesToTaskHandler struct {
 	embeddings  project.EmbeddingStorage
 }
 
-func NewAttachFilesToTaskHandler(repo project.TaskRepository, logger *slog.Logger, fileStorage project.FileStorage, embeddings project.EmbeddingStorage) AttachFilesToTaskHandler {
+func NewAttachFilesToTaskHandler(
+	repo project.TaskRepository,
+	logger *slog.Logger,
+	fileStorage project.FileStorage,
+	embeddings project.EmbeddingStorage,
+) AttachFilesToTaskHandler {
 	return decorator.ApplyCommandDecorators(
 		&attachFilesToTaskHandler{repo: repo, fileStorage: fileStorage, embeddings: embeddings},
 		logger,
