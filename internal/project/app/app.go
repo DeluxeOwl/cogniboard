@@ -38,6 +38,7 @@ func New(
 	fileStorage project.FileStorage,
 	chatService operations.ChatService,
 	embeddings project.EmbeddingStorage,
+	imageDescriber project.ImageDescriber,
 ) (*Application, error) {
 	if repo == nil {
 		return nil, errors.New("repo cannot be nil")
@@ -54,6 +55,9 @@ func New(
 	if embeddings == nil {
 		return nil, errors.New("embeddings cannot be nil")
 	}
+	if imageDescriber == nil {
+		return nil, errors.New("img describer cannot be nil")
+	}
 
 	return &Application{
 		Commands: Commands{
@@ -65,6 +69,7 @@ func New(
 				logger,
 				fileStorage,
 				embeddings,
+				imageDescriber,
 			),
 		},
 		Queries: Queries{

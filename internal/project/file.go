@@ -36,6 +36,10 @@ type EmbeddingStorage interface {
 	SearchAllDocuments(ctx context.Context, query string) ([]DocumentSimilarity, error)
 }
 
+type ImageDescriber interface {
+	DescribeImage(ctx context.Context, content io.Reader) (string, error)
+}
+
 type FileStorage interface {
 	Store(ctx context.Context, taskID TaskID, name string, content io.Reader) error
 	Get(ctx context.Context, taskID TaskID, name string) (io.ReadCloser, error)

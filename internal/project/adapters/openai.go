@@ -24,14 +24,14 @@ type OpenAIConfig struct {
 	Model string
 }
 
-type openAIAdapter struct {
+type OpenAIAdapter struct {
 	client *openai.Client
 	config OpenAIConfig
 }
 
 // NewOpenAIAdapter creates a new OpenAI adapter that implements ChatService
-func NewOpenAIAdapter(client *openai.Client, config OpenAIConfig) operations.ChatService {
-	return &openAIAdapter{
+func NewOpenAIAdapter(client *openai.Client, config OpenAIConfig) *OpenAIAdapter {
+	return &OpenAIAdapter{
 		client: client,
 		config: config,
 	}
@@ -77,7 +77,7 @@ func convertMessages(
 	return result, nil
 }
 
-func (a *openAIAdapter) DescribeImage(ctx context.Context, content io.Reader) (string, error) {
+func (a *OpenAIAdapter) DescribeImage(ctx context.Context, content io.Reader) (string, error) {
 	imageBytes, err := io.ReadAll(content)
 	if err != nil {
 		return "", fmt.Errorf("read from reader: %v", err)
@@ -103,7 +103,7 @@ func (a *openAIAdapter) DescribeImage(ctx context.Context, content io.Reader) (s
 	return res.Choices[0].Message.Content, nil
 }
 
-func (a *openAIAdapter) StreamChat(
+func (a *OpenAIAdapter) StreamChat(
 	ctx context.Context,
 	messages []operations.Message,
 	tools []project.ChatTool,

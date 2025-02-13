@@ -25,9 +25,10 @@ type AttachFilesToTask struct {
 type AttachFilesToTaskHandler decorator.CommandHandler[AttachFilesToTask]
 
 type attachFilesToTaskHandler struct {
-	repo        project.TaskRepository
-	fileStorage project.FileStorage
-	embeddings  project.EmbeddingStorage
+	repo           project.TaskRepository
+	fileStorage    project.FileStorage
+	embeddings     project.EmbeddingStorage
+	imageDescriber project.ImageDescriber
 }
 
 func NewAttachFilesToTaskHandler(
@@ -35,9 +36,15 @@ func NewAttachFilesToTaskHandler(
 	logger *slog.Logger,
 	fileStorage project.FileStorage,
 	embeddings project.EmbeddingStorage,
+	imageDescriber project.ImageDescriber,
 ) AttachFilesToTaskHandler {
 	return decorator.ApplyCommandDecorators(
-		&attachFilesToTaskHandler{repo: repo, fileStorage: fileStorage, embeddings: embeddings},
+		&attachFilesToTaskHandler{
+			repo:           repo,
+			fileStorage:    fileStorage,
+			embeddings:     embeddings,
+			imageDescriber: imageDescriber,
+		},
 		logger,
 	)
 }

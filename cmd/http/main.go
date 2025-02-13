@@ -186,7 +186,7 @@ func setupApplication(ctx context.Context,
 		panic(err)
 	}
 
-	app, err := app.New(repo, logger, fileStorage, chatService, embeddingStore)
+	app, err := app.New(repo, logger, fileStorage, chatService, embeddingStore, chatService)
 	if err != nil {
 		panic(err)
 	}
