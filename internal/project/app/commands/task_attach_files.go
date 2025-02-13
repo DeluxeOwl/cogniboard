@@ -64,14 +64,18 @@ func (h *attachFilesToTaskHandler) Handle(ctx context.Context, cmd AttachFilesTo
 			return fmt.Errorf("copy file content: %w", err)
 		}
 
-		err := h.processFile(ctx, cmd.TaskID, &snap, &buf)
-		if err != nil {
-			return fmt.Errorf("process file: %w", err)
-		}
-
 		if err := h.fileStorage.Store(ctx, cmd.TaskID, snap.Name, bytes.NewReader(buf.Bytes())); err != nil {
 			return fmt.Errorf("save file: %w", err)
 		}
+
+		go func() {
+			ctx := context.Background()
+			err := h.processFile(ctx, cmd.TaskID, &snap, &buf)
+			if err != nil {
+				fmt.Printf("process file error: %s\n", err.Error())
+			}
+		}()
+
 	}
 
 	return h.repo.AddFiles(ctx, cmd.TaskID, files)
@@ -84,35 +88,54 @@ func (h *attachFilesToTaskHandler) processFile(
 	buf *bytes.Buffer,
 ) error {
 	if !h.shouldCreateEmbeddings(snap.MimeType) {
-		fmt.Printf("%s not supported", snap.MimeType) // TODO: this would be better logged somewhere
+		fmt.Printf("%s not supported", snap.MimeType)
 		return nil
 	}
 
-	if isImage(snap.MimeType) {
-		file, err := h.fileStorage.Get(ctx, taskID, snap.Name)
-		if err != nil {
-			return fmt.Errorf("get file: %w", err)
-		}
-
-		description, err := h.imageDescriber.DescribeImage(ctx, file)
-		if err != nil {
-			return fmt.Errorf("describe file: %w", err)
-		}
-		fmt.Println(description)
-		return nil
+	content, err := h.getFileContent(ctx, taskID, snap, buf)
+	if err != nil {
+		return err
 	}
 
-	if err := h.embeddings.AddDocuments(ctx, []project.Document{
-		{
-			ID:      snap.ID,
-			Name:    snap.Name,
-			Content: buf.String(),
-			TaskID:  taskID,
-		},
-	}); err != nil {
+	return h.addDocumentEmbedding(ctx, project.Document{
+		ID:      snap.ID,
+		Name:    snap.Name,
+		Content: content,
+		TaskID:  taskID,
+	})
+}
+
+func (h *attachFilesToTaskHandler) getFileContent(
+	ctx context.Context,
+	taskID project.TaskID,
+	snap *project.FileSnapshot,
+	buf *bytes.Buffer,
+) (string, error) {
+	if !isImage(snap.MimeType) {
+		return buf.String(), nil
+	}
+
+	file, err := h.fileStorage.Get(ctx, taskID, snap.Name)
+	if err != nil {
+		return "", fmt.Errorf("get file: %w", err)
+	}
+	defer file.Close()
+
+	description, err := h.imageDescriber.DescribeImage(ctx, file)
+	if err != nil {
+		return "", fmt.Errorf("describe file: %w", err)
+	}
+
+	return description, nil
+}
+
+func (h *attachFilesToTaskHandler) addDocumentEmbedding(
+	ctx context.Context,
+	doc project.Document,
+) error {
+	if err := h.embeddings.AddDocuments(ctx, []project.Document{doc}); err != nil {
 		return fmt.Errorf("add documents: %w", err)
 	}
-
 	return nil
 }
 
