@@ -11,6 +11,27 @@ import (
 	"github.com/google/uuid"
 )
 
+type Document struct {
+	ID      string
+	Name    string
+	Content string
+	TaskID  TaskID
+}
+
+type DocumentSimilarity struct {
+	ID         string
+	Content    string
+	Name       string
+	Similarity float32
+	Metadata   map[string]string
+}
+
+type EmbeddingStorage interface {
+	AddDocuments(ctx context.Context, docs []Document) error
+	SearchDocumentsForTask(ctx context.Context, taskID TaskID, query string) (*DocumentSimilarity, error)
+	SearchAllDocuments(ctx context.Context, query string) ([]DocumentSimilarity, error)
+}
+
 type FileStorage interface {
 	Store(ctx context.Context, taskID TaskID, name string, content io.Reader) error
 	Get(ctx context.Context, taskID TaskID, name string) (io.ReadCloser, error)

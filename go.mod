@@ -12,6 +12,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/openai/openai-go v0.1.0-alpha.56
+	github.com/philippgille/chromem-go v0.7.0
 	github.com/samber/lo v1.49.1
 	github.com/sanity-io/litter v1.5.6
 	github.com/stretchr/testify v1.10.0
