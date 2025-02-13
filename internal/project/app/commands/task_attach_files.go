@@ -89,7 +89,16 @@ func (h *attachFilesToTaskHandler) processFile(
 	}
 
 	if isImage(snap.MimeType) {
-		// TODO: extract image info here
+		file, err := h.fileStorage.Get(ctx, taskID, snap.Name)
+		if err != nil {
+			return fmt.Errorf("get file: %w", err)
+		}
+
+		description, err := h.imageDescriber.DescribeImage(ctx, file)
+		if err != nil {
+			return fmt.Errorf("describe file: %w", err)
+		}
+		fmt.Println(description)
 		return nil
 	}
 
