@@ -57,26 +57,47 @@ func (h *attachFilesToTaskHandler) Handle(ctx context.Context, cmd AttachFilesTo
 			return fmt.Errorf("copy file content: %w", err)
 		}
 
-		if h.shouldCreateEmbeddings(snap.MimeType) {
-			err := h.embeddings.AddDocuments(ctx, []project.Document{
-				{
-					ID:      snap.ID,
-					Name:    snap.Name,
-					Content: buf.String(),
-					TaskID:  cmd.TaskID,
-				},
-			})
-			if err != nil {
-				fmt.Println("TODO: failed to create embedding", err)
-			}
+		err := h.processFile(ctx, cmd.TaskID, &snap, &buf)
+		if err != nil {
+			return fmt.Errorf("process file: %w", err)
 		}
 
 		if err := h.fileStorage.Store(ctx, cmd.TaskID, snap.Name, bytes.NewReader(buf.Bytes())); err != nil {
-			return fmt.Errorf("failed to save file: %w", err)
+			return fmt.Errorf("save file: %w", err)
 		}
 	}
 
 	return h.repo.AddFiles(ctx, cmd.TaskID, files)
+}
+
+func (h *attachFilesToTaskHandler) processFile(
+	ctx context.Context,
+	taskID project.TaskID,
+	snap *project.FileSnapshot,
+	buf *bytes.Buffer,
+) error {
+	if !h.shouldCreateEmbeddings(snap.MimeType) {
+		fmt.Printf("%s not supported", snap.MimeType) // TODO: this would be better logged somewhere
+		return nil
+	}
+
+	if isImage(snap.MimeType) {
+		// TODO: extract image info here
+		return nil
+	}
+
+	if err := h.embeddings.AddDocuments(ctx, []project.Document{
+		{
+			ID:      snap.ID,
+			Name:    snap.Name,
+			Content: buf.String(),
+			TaskID:  taskID,
+		},
+	}); err != nil {
+		return fmt.Errorf("add documents: %w", err)
+	}
+
+	return nil
 }
 
 func (h *attachFilesToTaskHandler) shouldCreateEmbeddings(mimeType string) bool {
@@ -84,10 +105,13 @@ func (h *attachFilesToTaskHandler) shouldCreateEmbeddings(mimeType string) bool 
 	case "text/csv", "text/markdown":
 		return true
 	default:
-		if strings.HasPrefix(mimeType, "image/") {
-			fmt.Println("TODO: image types are not supported")
-			return false
+		if isImage(mimeType) {
+			return true
 		}
 	}
 	return false
+}
+
+func isImage(mimeType string) bool {
+	return strings.HasPrefix(mimeType, "image/")
 }
