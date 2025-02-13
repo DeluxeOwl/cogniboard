@@ -37,6 +37,7 @@ func New(
 	logger *slog.Logger,
 	fileStorage project.FileStorage,
 	chatService operations.ChatService,
+	embeddings project.EmbeddingStorage,
 ) (*Application, error) {
 	if repo == nil {
 		return nil, errors.New("repo cannot be nil")
@@ -50,13 +51,16 @@ func New(
 	if chatService == nil {
 		return nil, errors.New("chat service cannot be nil")
 	}
+	if embeddings == nil {
+		return nil, errors.New("embeddings cannot be nil")
+	}
 
 	return &Application{
 		Commands: Commands{
 			CreateTask:        commands.NewCreateTaskHandler(repo, logger),
 			ChangeTaskStatus:  commands.NewChangeStatusHandler(repo, logger),
 			EditTask:          commands.NewEditTaskHandler(repo, logger),
-			AttachFilesToTask: commands.NewAttachFilesToTaskHandler(repo, logger, fileStorage),
+			AttachFilesToTask: commands.NewAttachFilesToTaskHandler(repo, logger, fileStorage, embeddings),
 		},
 		Queries: Queries{
 			AllTasks: queries.NewAllTasksHandler(repo, logger),

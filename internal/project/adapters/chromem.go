@@ -18,7 +18,7 @@ type ChromemDB struct {
 
 var _ project.EmbeddingStorage = &ChromemDB{}
 
-func NewChromemDB(dbPath string, openAIKey string, collectionName string, embeddingFunc chromem.EmbeddingFunc) (*ChromemDB, error) {
+func NewChromemDB(dbPath string, collectionName string, embeddingFunc chromem.EmbeddingFunc) (*ChromemDB, error) {
 	db, err := chromem.NewPersistentDB(dbPath, false)
 	if err != nil {
 		return nil, err

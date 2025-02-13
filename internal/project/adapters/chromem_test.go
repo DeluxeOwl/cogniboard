@@ -63,7 +63,7 @@ func TestChromemDB(t *testing.T) {
 	dbPath := filepath.Join(tempDir, "test.db")
 
 	// Initialize ChromemDB with mock embedding function
-	db, err := NewChromemDB(dbPath, "", "test-collection", mockEmbedding)
+	db, err := NewChromemDB(dbPath, "test-collection", mockEmbedding)
 	require.NoError(t, err)
 
 	ctx := context.Background()

@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/philippgille/chromem-go"
 	"github.com/sanity-io/litter"
 
 	_ "github.com/danielgtaylor/huma/v2/formats/cbor"
@@ -170,7 +171,12 @@ func setupApplication(ctx context.Context,
 		Model: aiModel,
 	})
 
-	app, err := app.New(repo, logger, fileStorage, chatService)
+	embeddingStore, err := adapters.NewChromemDB("./embeddings", "documents", chromem.NewEmbeddingFuncOpenAI(llmAPIKey, chromem.EmbeddingModelOpenAI3Small))
+	if err != nil {
+		panic(err)
+	}
+
+	app, err := app.New(repo, logger, fileStorage, chatService, embeddingStore)
 	if err != nil {
 		panic(err)
 	}
