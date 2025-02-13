@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 
 	"github.com/DeluxeOwl/cogniboard/internal/decorator"
 	"github.com/DeluxeOwl/cogniboard/internal/project"
@@ -48,11 +50,44 @@ func (h *attachFilesToTaskHandler) Handle(ctx context.Context, cmd AttachFilesTo
 	files := make([]project.File, len(cmd.Files))
 	for i, file := range cmd.Files {
 		files[i] = file.Metadata
-		err := h.fileStorage.Store(ctx, cmd.TaskID, file.Metadata.GetSnapshot().Name, file.Content)
-		if err != nil {
+		snap := file.Metadata.GetSnapshot()
+
+		var buf bytes.Buffer
+		if _, err := io.Copy(&buf, file.Content); err != nil {
+			return fmt.Errorf("copy file content: %w", err)
+		}
+
+		if h.shouldCreateEmbeddings(snap.MimeType) {
+			err := h.embeddings.AddDocuments(ctx, []project.Document{
+				{
+					ID:      snap.ID,
+					Name:    snap.Name,
+					Content: buf.String(),
+					TaskID:  cmd.TaskID,
+				},
+			})
+			if err != nil {
+				fmt.Println("TODO: failed to create embedding", err)
+			}
+		}
+
+		if err := h.fileStorage.Store(ctx, cmd.TaskID, snap.Name, bytes.NewReader(buf.Bytes())); err != nil {
 			return fmt.Errorf("failed to save file: %w", err)
 		}
 	}
 
 	return h.repo.AddFiles(ctx, cmd.TaskID, files)
+}
+
+func (h *attachFilesToTaskHandler) shouldCreateEmbeddings(mimeType string) bool {
+	switch mimeType {
+	case "text/csv", "text/markdown":
+		return true
+	default:
+		if strings.HasPrefix(mimeType, "image/") {
+			fmt.Println("TODO: image types are not supported")
+			return false
+		}
+	}
+	return false
 }

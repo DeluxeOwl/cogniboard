@@ -167,7 +167,7 @@ export default function AddTaskDialog() {
 									maxSize={1024 * 1024 * 50}
 									minSize={1024}
 									maxFiles={10}
-									accept={{ "image/*": [], "application/pdf": [".pdf"], "text/csv": [".csv"] }}
+									accept={{ "image/*": [], "text/markdown": [".md"], "text/csv": [".csv"] }}
 									onDrop={(acceptedFiles) => {
 										setValue("files", acceptedFiles);
 									}}
