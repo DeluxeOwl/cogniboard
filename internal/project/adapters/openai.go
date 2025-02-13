@@ -2,7 +2,9 @@ package adapters
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/DeluxeOwl/cogniboard/internal/project"
@@ -73,6 +75,32 @@ func convertMessages(
 	}
 
 	return result, nil
+}
+
+func (a *openAIAdapter) DescribeImage(ctx context.Context, content io.Reader) (string, error) {
+	imageBytes, err := io.ReadAll(content)
+	if err != nil {
+		return "", fmt.Errorf("read from reader: %v", err)
+	}
+
+	// Convert to base64
+	base64String := base64.StdEncoding.EncodeToString(imageBytes)
+	url := fmt.Sprintf("data:image/jpg;base64,%s", base64String)
+
+	res, err := a.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+			openai.UserMessageParts(
+				openai.TextPart("Please explain as detailed as possible what's in the image"),
+				openai.ImagePart(url),
+			),
+		}),
+		Model: openai.String(openai.ChatModelO1),
+	})
+	if err != nil {
+		return "", fmt.Errorf("get description: %w", err)
+	}
+
+	return res.Choices[0].Message.Content, nil
 }
 
 func (a *openAIAdapter) StreamChat(
