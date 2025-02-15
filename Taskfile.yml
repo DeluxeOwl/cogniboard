@@ -1,5 +1,8 @@
 version: '3'
 
+dotenv:
+  - '.env'
+
 tasks:
   install:
     desc: Install devbox if not already installed
@@ -67,3 +70,11 @@ tasks:
     cmds:
       - task: docker
       - task: run-api
+
+  seed:
+    cmds:
+      - usql {{.SERVICE_POSTGRES_DSN}} -f seed.sql
+  
+  clean-db:
+    cmds:
+      - usql {{.SERVICE_POSTGRES_DSN}} -c "delete from files;delete from task_files;delete from tasks;"
