@@ -70,9 +70,12 @@ func (h *attachFilesToTaskHandler) Handle(ctx context.Context, cmd AttachFilesTo
 			return fmt.Errorf("save file: %w", err)
 		}
 
+		// Log before starting the goroutine to ensure it's visible
+		h.logger.Info("processing file", "task_id", cmd.TaskID, "file_name", snap.Name, "mime_type", snap.MimeType)
+
+		// Process file asynchronously
 		go func() {
 			ctx := context.Background()
-			h.logger.Info("processing file", "task_id", cmd.TaskID, "file_name", snap.Name, "mime_type", snap.MimeType)
 			err := h.processFile(ctx, cmd.TaskID, &snap, &buf)
 			if err != nil {
 				h.logger.Error("file not processed", "err", err)
@@ -128,7 +131,7 @@ func (h *attachFilesToTaskHandler) getFileContent(
 	if err != nil {
 		return "", fmt.Errorf("describe file: %w", err)
 	}
-	slog.Info("describe image", "description", description)
+	h.logger.Info("describe image", "description", description)
 
 	return description, nil
 }
