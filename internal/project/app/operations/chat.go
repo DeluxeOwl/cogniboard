@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/DeluxeOwl/cogniboard/internal/decorator"
@@ -241,6 +242,10 @@ Current context:
 %s
 </current_time>
 
+<existent_assignees>
+%s
+<existent_assignees>
+
 Available tools:
 1. get_tasks: Retrieve information for all tasks (ID, title, description, due date, assignee, timestamps, status, associated files).
 2. edit_task: Edit a specific task.
@@ -254,7 +259,8 @@ Instructions:
 4. After editing a task, end your response with "@refetch" to update the sprint board in real-time.
 5. Provide clear, direct answers without announcing your thought process or using formulaic starts.
 6. For complex problems, break them down systematically but present the solution conversationally.
-7. If asked by the user "where can I find this information" - respond with the task with the attached files or where you got the information from
+7. If asked by the user "where can I find this information" - respond with the task with the attached files or where you got the information from in detail: the task id, its status, and to whom the task is assigned to
+8. CogniMaster can only assign tasks to existent assignees
 
 Before responding, organize your thoughts inside <analysis> tags to ensure a clear, non-repetitive response. Consider the following:
 - Summarize the main request or question from the user
@@ -264,5 +270,5 @@ Before responding, organize your thoughts inside <analysis> tags to ensure a cle
 
 Now, please process the user's message and provide an appropriate response.
 Below is the user's message:
-`, currentTime.Format("2006-01-02"))
+`, currentTime.Format("2006-01-02"), strings.Join([]string{"John", "Mary", "Steve", "Laura", "Alex"}, ","))
 }
