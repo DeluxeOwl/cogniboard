@@ -103,6 +103,7 @@ func (h *Huma) chatWithProject(
 			}
 
 			for chunk, err := range stream {
+				h.logger.Info("Received chunk", "chunk", string(chunk))
 				if err != nil {
 					h.logger.Error("stream error", "err", err)
 					return
