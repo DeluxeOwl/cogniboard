@@ -25,6 +25,7 @@ type AttachFilesToTask struct {
 type AttachFilesToTaskHandler decorator.CommandHandler[AttachFilesToTask]
 
 type attachFilesToTaskHandler struct {
+	logger         *slog.Logger
 	repo           project.TaskRepository
 	fileStorage    project.FileStorage
 	embeddings     project.EmbeddingStorage
@@ -44,6 +45,7 @@ func NewAttachFilesToTaskHandler(
 			fileStorage:    fileStorage,
 			embeddings:     embeddings,
 			imageDescriber: imageDescriber,
+			logger:         logger,
 		},
 		logger,
 	)
@@ -72,7 +74,7 @@ func (h *attachFilesToTaskHandler) Handle(ctx context.Context, cmd AttachFilesTo
 			ctx := context.Background()
 			err := h.processFile(ctx, cmd.TaskID, &snap, &buf)
 			if err != nil {
-				fmt.Printf("process file error: %s\n", err.Error())
+				h.logger.Error("file not processed", "err", err)
 			}
 		}()
 
@@ -88,7 +90,7 @@ func (h *attachFilesToTaskHandler) processFile(
 	buf *bytes.Buffer,
 ) error {
 	if !h.shouldCreateEmbeddings(snap.MimeType) {
-		fmt.Printf("%s not supported", snap.MimeType)
+		h.logger.Warn("file type not supported for processing", "mime_type", snap.MimeType)
 		return nil
 	}
 
@@ -125,6 +127,7 @@ func (h *attachFilesToTaskHandler) getFileContent(
 	if err != nil {
 		return "", fmt.Errorf("describe file: %w", err)
 	}
+	slog.Info("describe image", "description", description)
 
 	return description, nil
 }
