@@ -14,8 +14,6 @@ export default function Chat() {
 	const [adapter] = useState(() =>
 		CreateOpenAIWithoutProxyAdapter({
 			onRefetch: async () => {
-				console.info("should refetch", Math.random());
-
 				await queryClient.invalidateQueries({
 					queryKey: tasksQueryKey(),
 					type: "all",
