@@ -12,18 +12,18 @@ import (
 )
 
 type Document struct {
-	ID      string
-	Name    string
-	Content string
-	TaskID  TaskID
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Content string `json:"content"`
+	TaskID  TaskID `json:"task_id"`
 }
 
 type DocumentSimilarity struct {
-	ID         string
-	Content    string
-	Name       string
-	Similarity float32
-	Metadata   map[string]string
+	ID         string            `json:"id"`
+	Content    string            `json:"content"`
+	Name       string            `json:"name"`
+	Similarity float32           `json:"similarity"`
+	Metadata   map[string]string `json:"metadata"`
 }
 
 type EmbeddingStorage interface {

@@ -76,7 +76,7 @@ func New(
 			AllTasks: queries.NewAllTasksHandler(repo, logger),
 		},
 		Operations: Operations{
-			ChatWithProject: operations.NewChatWithProjectHandler(chatService, repo, logger),
+			ChatWithProject: operations.NewChatWithProjectHandler(chatService, repo, logger, embeddings),
 		},
 	}, nil
 }

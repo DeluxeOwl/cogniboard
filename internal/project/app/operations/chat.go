@@ -16,6 +16,7 @@ type ChatWithProjectHandler decorator.OperationHandler[ChatWithProject, project.
 type chatWithProjectHandler struct {
 	chatService ChatService
 	repo        project.TaskRepository
+	embeddings  project.EmbeddingStorage
 }
 
 // ChatWithProjectReadModel defines the interface for reading chat interactions
@@ -27,9 +28,10 @@ func NewChatWithProjectHandler(
 	chatService ChatService,
 	repo project.TaskRepository,
 	logger *slog.Logger,
+	embeddings project.EmbeddingStorage,
 ) ChatWithProjectHandler {
 	return decorator.ApplyOperationDecorators(
-		&chatWithProjectHandler{chatService: chatService, repo: repo},
+		&chatWithProjectHandler{chatService: chatService, repo: repo, embeddings: embeddings},
 		logger,
 	)
 }
@@ -65,6 +67,15 @@ type EditTaskArgs struct {
 	Status       *string    `json:"status"`
 }
 
+type SearchDocumentsForTaskArgs struct {
+	TaskID string `json:"taskID"`
+	Query  string `json:"query"`
+}
+
+type SearchAllDocumentsArgs struct {
+	Query string `json:"query"`
+}
+
 // TODO: chat should be a domain object. For now it's fine to do some business logic here.
 // The openai adapter should depend on the message domain entity
 func (h *chatWithProjectHandler) Handle(
@@ -74,6 +85,59 @@ func (h *chatWithProjectHandler) Handle(
 	operation.enrichWithSystemPrompt()
 
 	return h.chatService.StreamChat(ctx, operation.Messages, []project.ChatTool{
+		project.Tool[SearchAllDocumentsArgs]{
+			FuncName:    "search_all_documents",
+			Description: "Searches through all documents, attached to ANY task based on embeddings, gets back the most likely results for the user's query",
+			Params: []project.ToolParam{
+				{
+					Name:      "query",
+					ParamType: "string",
+					Required:  true,
+				},
+			},
+			Handler: func(ctx context.Context, sdfta SearchAllDocumentsArgs) (string, error) {
+				res, err := h.embeddings.SearchAllDocuments(ctx, sdfta.Query)
+				if err != nil {
+					return "couldn't search documents", fmt.Errorf("search documents: %w", err)
+				}
+
+				marshaled, err := json.Marshal(res)
+				if err != nil {
+					return "couldn't search documents", fmt.Errorf("search documents: %w", err)
+				}
+
+				return string(marshaled), nil
+			},
+		},
+		project.Tool[SearchDocumentsForTaskArgs]{
+			FuncName:    "search_documents_for_task",
+			Description: "Searches through all documents attached to a task based on embeddings, gets back the embedding search for the user's query",
+			Params: []project.ToolParam{
+				{
+					Name:      "taskID",
+					ParamType: "string",
+					Required:  true,
+				},
+				{
+					Name:      "query",
+					ParamType: "string",
+					Required:  true,
+				},
+			},
+			Handler: func(ctx context.Context, sdfta SearchDocumentsForTaskArgs) (string, error) {
+				res, err := h.embeddings.SearchDocumentsForTask(ctx, project.TaskID(sdfta.TaskID), sdfta.Query)
+				if err != nil {
+					return "couldn't search the task", fmt.Errorf("search docs for task: %w", err)
+				}
+
+				marshaled, err := json.Marshal(res)
+				if err != nil {
+					return "couldn't search the task", fmt.Errorf("search docs for task: %w", err)
+				}
+
+				return string(marshaled), nil
+			},
+		},
 		project.Tool[struct{}]{
 			FuncName:    "get_tasks",
 			Description: "Get all available tasks from the board",
@@ -170,22 +234,34 @@ func (op *ChatWithProject) enrichWithSystemPrompt() {
 
 func NewSystemPrompt(currentTime time.Time) string {
 	return fmt.Sprintf(`
-<context>
-The current time is %s
+You are CogniMaster, an AI assistant designed to function as a Scrum Master with real-time access to a team's Kanban board and sprint backlog. Your primary role is to facilitate Agile project management and support the development team's productivity.
 
-You can use the tool get_tasks to get information for all tasks like ID, title, optional description, due date, assignee, timestamps for creation/updates/completion, status, and associated files.
-</context>
+Current context:
+<current_time>
+%s
+</current_time>
 
-You are an experienced CogniMaster, an AI assitant designed as a Scrum Master with real-time access to the team's current Kanban board and sprint backlog. Your primary function is to facilitate Agile project management and support the development team's productivity. 
+Available tools:
+1. get_tasks: Retrieve information for all tasks (ID, title, description, due date, assignee, timestamps, status, associated files).
+2. edit_task: Edit a specific task.
+3. search_documents_for_task: Searches through all documents attached to a task based on embeddings, gets back the embedding search for the user's query
+4. search_all_documents: Searches through all documents, attached to ANY task based on embeddings, gets back the most likely results for the user's query
 
-CogniMaster uses the tools to interact with the sprint backlog
-- CogniMaster MUST use the get_tasks to get the status of the sprint, available assignees, and what files are attaches on each task
-- CogniMaster MUST use the edit_task to edit a task
-- CogniMaster MUST use get_tasks if he doesn't have enough information to use edit_task
+Instructions:
+1. Analyze the user's message and determine the appropriate action.
+2. If you need task information, use the get_tasks tool.
+3. If you need to edit a task, use the edit_task tool. Always use get_tasks first if you don't have enough information to use edit_task.
+4. After editing a task, end your response with "@refetch" to update the sprint board in real-time.
+5. Provide clear, direct answers without announcing your thought process or using formulaic starts.
+6. For complex problems, break them down systematically but present the solution conversationally.
 
-<important-instructions>
-After editing a task, CogniMaster MUST end his response with "@refetch" so that the sprint board is updated in real-time.
-<important-instructions>
+Before responding, organize your thoughts inside <analysis> tags to ensure a clear, non-repetitive response. Consider the following:
+- Summarize the main request or question from the user
+- List the information and tools needed to address this request
+- Plan the structure of your response to be clear and concise
+- Consider any potential challenges or edge cases
 
+Now, please process the user's message and provide an appropriate response.
+Below is the user's message:
 `, currentTime.Format("2006-01-02"))
 }
