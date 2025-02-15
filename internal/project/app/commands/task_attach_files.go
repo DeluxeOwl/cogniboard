@@ -72,6 +72,7 @@ func (h *attachFilesToTaskHandler) Handle(ctx context.Context, cmd AttachFilesTo
 
 		go func() {
 			ctx := context.Background()
+			h.logger.Info("processing file", "task_id", cmd.TaskID, "file_name", snap.Name, "mime_type", snap.MimeType)
 			err := h.processFile(ctx, cmd.TaskID, &snap, &buf)
 			if err != nil {
 				h.logger.Error("file not processed", "err", err)

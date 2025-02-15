@@ -164,10 +164,6 @@ func (h *Huma) createTask(ctx context.Context, input *struct {
 		return nil, handleError(err)
 	}
 
-	for _, f := range filesToUpload {
-		fmt.Println(f.Metadata.GetSnapshot().MimeType)
-	}
-
 	err = h.app.Commands.CreateTask.Handle(ctx, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("task create: %w", err)
