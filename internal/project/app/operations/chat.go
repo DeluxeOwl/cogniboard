@@ -10,14 +10,17 @@ import (
 
 	"github.com/DeluxeOwl/cogniboard/internal/decorator"
 	"github.com/DeluxeOwl/cogniboard/internal/project"
+	"github.com/DeluxeOwl/cogniboard/internal/project/app/commands"
 )
 
 type ChatWithProjectHandler decorator.OperationHandler[ChatWithProject, project.StreamingChunk]
 
 type chatWithProjectHandler struct {
-	chatService ChatService
-	repo        project.TaskRepository
-	embeddings  project.EmbeddingStorage
+	chatService       ChatService
+	repo              project.TaskRepository
+	embeddings        project.EmbeddingStorage
+	logger            *slog.Logger
+	createTaskHandler commands.CreateTaskHandler
 }
 
 // ChatWithProjectReadModel defines the interface for reading chat interactions
@@ -32,7 +35,7 @@ func NewChatWithProjectHandler(
 	embeddings project.EmbeddingStorage,
 ) ChatWithProjectHandler {
 	return decorator.ApplyOperationDecorators(
-		&chatWithProjectHandler{chatService: chatService, repo: repo, embeddings: embeddings},
+		&chatWithProjectHandler{chatService: chatService, repo: repo, embeddings: embeddings, logger: logger, createTaskHandler: commands.NewCreateTaskHandler(repo, logger)},
 		logger,
 	)
 }
@@ -77,6 +80,12 @@ type SearchAllDocumentsArgs struct {
 	Query string `json:"query"`
 }
 
+type AddTaskArgs struct {
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	Assignee    *string `json:"assignee"`
+}
+
 // TODO: chat should be a domain object. For now it's fine to do some business logic here.
 // The openai adapter should depend on the message domain entity
 func (h *chatWithProjectHandler) Handle(
@@ -86,6 +95,43 @@ func (h *chatWithProjectHandler) Handle(
 	operation.enrichWithSystemPrompt()
 
 	return h.chatService.StreamChat(ctx, operation.Messages, []project.ChatTool{
+		project.Tool[AddTaskArgs]{
+			FuncName:    "add_task",
+			Description: "Adds a task to the backlog, only the title is required, description and the assignee are optional",
+			Params: []project.ToolParam{
+				{
+					Name:      "title",
+					ParamType: "string",
+					Required:  true,
+				},
+				{
+					Name:      "description",
+					ParamType: "string",
+				},
+				{
+					Name:      "assignee",
+					ParamType: "string",
+				},
+			},
+			Handler: func(ctx context.Context, ata AddTaskArgs) (string, error) {
+				taskID, err := project.NewTaskID()
+				if err != nil {
+					return "couldn't add task", err
+				}
+
+				err = h.createTaskHandler.Handle(ctx, commands.CreateTask{
+					TaskID:       taskID,
+					Title:        ata.Title,
+					Description:  ata.Description,
+					AssigneeName: ata.Assignee,
+				})
+				if err != nil {
+					return "couldn't add task", err
+				}
+
+				return "added task succesfully", nil
+			},
+		},
 		project.Tool[SearchAllDocumentsArgs]{
 			FuncName:    "search_all_documents",
 			Description: "Searches through all documents, attached to ANY task based on embeddings, gets back the most likely results for the user's query",
@@ -259,12 +305,13 @@ Available tools:
 2. edit_task: Edit a specific task.
 3. search_documents_for_task: Searches through all documents attached to a task based on embeddings, gets back the embedding search for the user's query
 4. search_all_documents: Searches through all documents, attached to ANY task based on embeddings, gets back the most likely results for the user's query
+5. add_task: Adds a task to the backlog, only the title is required, description and the assignee are optional
 
 Instructions:
 1. Analyze the user's message and determine the appropriate action.
 2. If you need task information, use the get_tasks tool.
 3. If you need to edit a task, use the edit_task tool. Always use get_tasks first if you don't have enough information to use edit_task.
-4. After editing a task, end your response with "@refetch" to update the sprint board in real-time.
+4. After editing a task OR adding a task, end your response with "@refetch" to update the sprint board in real-time.
 5. Provide clear, direct answers without announcing your thought process or using formulaic starts.
 6. For complex problems, break them down systematically but present the solution conversationally.
 7. If asked by the user "where can I find this information" - respond with the task with the attached files or where you got the information from in detail: the task id, its status, and to whom the task is assigned to
