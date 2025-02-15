@@ -71,7 +71,15 @@ func (h *attachFilesToTaskHandler) Handle(ctx context.Context, cmd AttachFilesTo
 		}
 
 		// Log before starting the goroutine to ensure it's visible
-		h.logger.Info("processing file", "task_id", cmd.TaskID, "file_name", snap.Name, "mime_type", snap.MimeType)
+		h.logger.Info(
+			"processing file",
+			"task_id",
+			cmd.TaskID,
+			"file_name",
+			snap.Name,
+			"mime_type",
+			snap.MimeType,
+		)
 
 		// Process file asynchronously
 		go func() {

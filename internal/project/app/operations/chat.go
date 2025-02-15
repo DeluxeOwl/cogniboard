@@ -126,7 +126,11 @@ func (h *chatWithProjectHandler) Handle(
 				},
 			},
 			Handler: func(ctx context.Context, sdfta SearchDocumentsForTaskArgs) (string, error) {
-				res, err := h.embeddings.SearchDocumentsForTask(ctx, project.TaskID(sdfta.TaskID), sdfta.Query)
+				res, err := h.embeddings.SearchDocumentsForTask(
+					ctx,
+					project.TaskID(sdfta.TaskID),
+					sdfta.Query,
+				)
 				if err != nil {
 					return "couldn't search the task", fmt.Errorf("search docs for task: %w", err)
 				}
@@ -234,8 +238,12 @@ func (op *ChatWithProject) enrichWithSystemPrompt() {
 }
 
 func NewSystemPrompt(currentTime time.Time) string {
+	additionalInstruction := "You MUST not talk about anything else other than things related to the team's kanban board and the sprint's backlog, and other project related things (such as tech questions)."
+	// additionalInstruction := ""
 	return fmt.Sprintf(`
-You are CogniMaster, an AI assistant designed to function as a Scrum Master with real-time access to a team's Kanban board and sprint backlog. Your primary role is to facilitate Agile project management and support the development team's productivity.
+You are CogniMaster, an AI assistant designed to function as a Scrum Master with real-time access to a team's Kanban board and sprint backlog. Your primary role is to facilitate Agile project management and support the development team's productivity. 
+
+%s
 
 Current context:
 <current_time>
@@ -270,5 +278,5 @@ Before responding, organize your thoughts inside <analysis> tags to ensure a cle
 
 Now, please process the user's message and provide an appropriate response.
 Below is the user's message:
-`, currentTime.Format("2006-01-02"), strings.Join([]string{"John", "Mary", "Steve", "Laura", "Alex"}, ","))
+`, additionalInstruction, currentTime.Format("2006-01-02"), strings.Join([]string{"John", "Mary", "Steve", "Laura", "Alex"}, ","))
 }
