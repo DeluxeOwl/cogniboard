@@ -1,0 +1,25 @@
+shape: sequence_diagram
+
+frontend
+app
+OpenAI
+
+OpenAI -> app: <sending more chunks>
+
+OpenAI -> app: |json
+  [{"index":0,"delta":{},"finish_reason":"tool_calls"}]}
+|
+
+app -> app: |go
+  commands.CreateTask{
+      TaskID:"01950e26-0454-74fd-a1b6-9bef118818c8",
+      Title:"troubleshoot react native app",
+      Description:&"RN bridge not working",
+      DueDate:nil,
+      AssigneeName:&"John"
+  }
+|
+
+app -> OpenAI: Send message with succesfully created task.
+OpenAI -> app: <streaming chunks> "I've added the task"
+app -> frontend: "I've added the task \"troubleshoot react native app\""

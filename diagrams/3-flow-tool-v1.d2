@@ -1,0 +1,24 @@
+shape: sequence_diagram
+
+frontend -> app: "Can you add a task with the title ..."
+
+app -> OpenAI: Can you add a task with\n the title \"troubleshoot react native app\",\n assign it to john, make up a description
+
+OpenAI -> app: |json
+  "tool_calls":[{"index":0,"id":"call_ktxh48Ujnk8JlNaPY8bxjRe9",
+  "type":"function","function":{"name":"add_task","arguments":""}}],
+|
+
+OpenAI -> app: |json
+  {"tool_calls":[{"index":0,"function":
+  {"arguments":"title":"}}]},
+  "finish_reason":null}]}
+|
+
+OpenAI -> app: <sending more chunks>
+
+OpenAI -> app: |json
+  {"tool_calls":[{"index":0,"function":
+  {"arguments":" bridge"}}]},
+  "finish_reason":null}]}
+|

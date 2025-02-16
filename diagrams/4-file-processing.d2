@@ -1,0 +1,68 @@
+file-handler: |go
+  func (h *attachFilesToTaskHandler) Handle(ctx context.Context, cmd AttachFilesToTask) error {
+  	// ...
+  	for i, file := range cmd.Files {
+  		// ...
+
+  	    h.fileStorage.Store(ctx, cmd.TaskID, snap.Name ... )
+
+  		// Process file on a separate thread
+  		go func() {
+  			ctx := context.Background()
+  			err := h.processFile(ctx, cmd.TaskID, &snap, &buf)
+  			if err != nil {
+  				h.logger.Error("file not processed", "err", err)
+  			}
+  		}()
+
+  	}
+
+    // In add the file metadata to the repository (database)
+  	return h.repo.AddFiles(ctx, cmd.TaskID, files)
+  }
+|
+
+file-process: |go
+  func (h *attachFilesToTaskHandler) processFile(
+  	// ...
+  ) error {
+  	if !h.shouldCreateEmbeddings(snap.MimeType) {
+  		return
+  	}
+
+  	content, err := h.getFileContent(ctx, taskID, snap, buf)
+  	// ...
+
+  	return h.addDocumentEmbedding(ctx, project.Document{
+  		ID:      snap.ID,
+  		Name:    snap.Name,
+  		Content: content,
+  		TaskID:  taskID,
+  	})
+  }
+|
+
+get-file-content: |go
+  func (h *attachFilesToTaskHandler) getFileContent(
+  	// ...
+  ) (string, error) {
+  	if !isImage(snap.MimeType) {
+  		return buf.String(), nil
+  	}
+
+      // Take the image
+  	file, err := h.fileStorage.Get(ctx, taskID, snap.Name)
+  	// ...
+
+      // Describe it, and return the description as content.
+  	description, err := h.imageDescriber.DescribeImage(ctx, file)
+  	if err != nil {
+  		return "", fmt.Errorf("describe file: %w", err)
+  	}
+  	h.logger.Info("describe image", "description", description)
+
+  	return description, nil
+  }
+|
+
+file-handler -> file-process -> get-file-content
