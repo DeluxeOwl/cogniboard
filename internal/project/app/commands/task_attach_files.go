@@ -155,15 +155,11 @@ func (h *attachFilesToTaskHandler) addDocumentEmbedding(
 }
 
 func (h *attachFilesToTaskHandler) shouldCreateEmbeddings(mimeType string) bool {
-	switch mimeType {
-	case "text/csv", "text/markdown":
-		return true
-	default:
-		if isImage(mimeType) {
-			return true
-		}
-	}
-	return false
+	return isImage(mimeType) || isMarkdown(mimeType)
+}
+
+func isMarkdown(mimeType string) bool {
+	return strings.Contains(mimeType, "text/markdown")
 }
 
 func isImage(mimeType string) bool {

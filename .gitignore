@@ -210,3 +210,5 @@ dist
 .DS_Store
 cogniboardfiles/
 some_test.go
+
+embeddings/
