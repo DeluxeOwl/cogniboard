@@ -1,0 +1,57 @@
+huma-create: |go
+  huma.Register(h.api, huma.Operation{
+  		OperationID:  "task-create",
+  		Method:       http.MethodPost,
+  		Path:         "/tasks/create",
+  		Summary:      "Create a task",
+  		MaxBodyBytes: maxBodyBytes,
+  	}, h.createTask)
+|
+
+create-task-handler: |go
+  func (h *Huma) createTask(ctx context.Context, input *struct {
+  	RawBody huma.MultipartFormFiles[CreateTask]
+  },
+  ) (*struct{}, error) {
+      // ...
+
+  	err = h.app.Commands.CreateTask.Handle(ctx, cmd)
+  	if err != nil {
+  		return nil, fmt.Errorf("task create: %w", err)
+  	}
+
+  	return // ...
+  }
+|
+
+go-app: |go
+  &Application{
+  	Commands: Commands{
+  		CreateTask:       //...,
+  		EditTask:         //...,
+  		AttachFilesToTask: //...,
+  	},
+  	Queries: Queries{
+  		AllTasks: //...,
+  	},
+  	Operations: Operations{
+  		ChatWithProject: //...,
+  	},
+  }, nil
+|
+
+app-handler: |go
+  func (h *createTaskHandler) Handle(ctx context.Context, cmd CreateTask) error {
+  	task, err := project.NewTask(
+  		// ...
+  	)
+      // ...
+  	if err := h.repo.Create(ctx, task); err != nil {
+  		return err
+  	}
+
+  	return nil
+  }
+|
+
+huma-create -> create-task-handler -> go-app -> app-handler

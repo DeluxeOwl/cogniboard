@@ -1,6 +1,54 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "d2@latest": {
+      "last_modified": "2025-02-09T21:53:45Z",
+      "resolved": "github:NixOS/nixpkgs/b2243f41e860ac85c0b446eadc6930359b294e79#d2",
+      "source": "devbox-search",
+      "version": "0.6.9",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/pyd69j5ksdki5qp48x852knckchdisr2-d2-0.6.9",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/pyd69j5ksdki5qp48x852knckchdisr2-d2-0.6.9"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/jxh5phf2076ijgfa6m4blarr0s1s83sg-d2-0.6.9",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/jxh5phf2076ijgfa6m4blarr0s1s83sg-d2-0.6.9"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/9mc6c4v0cyyxzwsmf4bwhpnvi1f8rf3v-d2-0.6.9",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/9mc6c4v0cyyxzwsmf4bwhpnvi1f8rf3v-d2-0.6.9"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/b32kvgakdwpmgkrsyxdwifnakmy8gbhr-d2-0.6.9",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/b32kvgakdwpmgkrsyxdwifnakmy8gbhr-d2-0.6.9"
+        }
+      }
+    },
     "darwin.apple_sdk.frameworks.CoreFoundation": {
       "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#darwin.apple_sdk.frameworks.CoreFoundation",
       "source": "nixpkg"

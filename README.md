@@ -2,6 +2,8 @@
 
 Cogniboard is a full-stack task management application built with modern technologies and best practices.
 
+[Link to Google Slides presentation](https://docs.google.com/presentation/d/1q0kbNU1chN0N0nXduwENWCKqinP109deUYeZU6SNLWc/edit#slide=id.p)
+
 ## Tech Stack
 
 ### Backend

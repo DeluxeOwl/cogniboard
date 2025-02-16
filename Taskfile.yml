@@ -4,6 +4,12 @@ dotenv:
   - '.env'
 
 tasks:
+  gen-diagrams:
+    desc: Generate the diagrams from d2
+    dir: diagrams
+    cmds:
+      - for f in *.d2; do d2 "$f" "${f%.d2}.png"; done
+      
   install:
     desc: Install devbox if not already installed
     cmds:

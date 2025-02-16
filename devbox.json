@@ -24,7 +24,8 @@
       ]
     },
     "go-task": "3.38.0",
-    "golines": "latest"
+    "golines": "latest",
+    "d2":      "latest"
   },
   "shell": {}
 }

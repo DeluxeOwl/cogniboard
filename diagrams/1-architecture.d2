@@ -1,0 +1,25 @@
+user: {
+  shape: person
+}
+
+frontend: React frontend
+
+backend: Go backend
+
+pg: Postgres {
+  shape: cylinder
+}
+
+chromem: Chromem {
+  shape: cylinder
+}
+
+OpenAI: {
+  shape: cloud
+}
+
+user -> frontend: Work with tasks & chat
+frontend -> backend: OpenAPI 3.0
+backend -> pg: Task, file data
+backend -> chromem: Embeddings
+backend <-> OpenAI: External service
